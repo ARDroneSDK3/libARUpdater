@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PLF=delos_lucie_updater_payload.plf
+echo "$PLF"
+
+plftool -F p_ver=0 $PLF
+plftool -F p_edit=23 $PLF
+plftool -F p_ext=0 $PLF
+
+chmod +r $PLF
+
