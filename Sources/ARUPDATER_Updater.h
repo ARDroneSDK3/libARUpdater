@@ -11,8 +11,6 @@
 
 #include <libARUpdater/ARUPDATER_Error.h>
 #include <libARUpdater/ARUPDATER_Updater.h>
-#include <libARUpdater/ARUPDATER_Manager.h>
-#include "ARUPDATER_Plf.h"
 
 typedef struct ARUPDATER_Updater_t
 {
@@ -28,7 +26,6 @@ typedef struct ARUPDATER_Updater_t
  * @brief Create a new Updater
  * @warning This function allocate memory
  * @post ARUPDATER_Updater_Delete() must be called to delete the updater and free the memory allocated.
- * @param[in] the file path of the plf file
  * @param[out] error : pointer on the error output.
  * @return Pointer on the new udpater
  * @see ARUPDATER_Updater_Delete()

@@ -4,9 +4,10 @@
 ACLOCAL_AMFLAGS                                             =   -I m4
 
 # The list of header files that belong to the library (to be installed later)
-HEADER_FILES                                                =   ../Includes/libARUpdater/ARUPDATER_Manager.h \
-                                                                ../Includes/libARUpdater/ARUPDATER_Updater.h \
-                                                                ../Includes/libARUpdater/ARUPDATER_Error.h \
+HEADER_FILES                                                =   ../Includes/libARUpdater/ARUPDATER_Manager.h    \
+                                                                ../Includes/libARUpdater/ARUPDATER_Updater.h    \
+                                                                ../Includes/libARUpdater/ARUPDATER_PlfSender.h  \
+                                                                ../Includes/libARUpdater/ARUPDATER_Error.h      \
                                                                 ../Includes/libARUpdater/ARUpdater.h
 
 # The sources to add to the library and to add to the source distribution
@@ -15,6 +16,8 @@ SOURCE_FILES                                                =   $(HEADER_FILES)\
                                                                 ../Sources/ARUPDATER_Manager.h \
                                                                 ../Sources/ARUPDATER_Updater.c \
                                                                 ../Sources/ARUPDATER_Updater.h \
+                                                                ../Sources/ARUPDATER_PlfSender.c \
+                                                                ../Sources/ARUPDATER_PlfSender.h \
                                                                 ../Sources/ARUPDATER_Plf.c     \
                                                                 ../Sources/ARUPDATER_Plf.h     \
                                                                 ../Sources/ARUPDATER_Utils.c   \
@@ -48,11 +51,13 @@ if DEBUG_MODE
 libarupdater_autoTest_LDADD                                 =   libarupdater_dbg.la \
                                                                 -larsal_dbg         \
                                                                 -larutils_dbg       \
+                                                                -lardatatransfer_dbg\
                                                                 -lcurl
 else
 libarupdater_autoTest_LDADD                                 =   libarupdater.la     \
                                                                 -larsal             \
                                                                 -larutils           \
+                                                                -lardatatransfer    \
                                                                 -lcurl
 endif
 

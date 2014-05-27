@@ -9,6 +9,7 @@
 #define _ARUPDATER_MANAGER_PRIVATE_H_
 
 #include "ARUPDATER_Updater.h"
+#include "ARUPDATER_PlfSender.h"
 
 /**
  * @brief Manager structure
@@ -19,6 +20,7 @@
 struct ARUPDATER_Manager_t
 {
     ARUPDATER_Updater_t *updater;
+    ARUPDATER_PlfSender_t *plfSender;
     
     char *plfFolder;
 };

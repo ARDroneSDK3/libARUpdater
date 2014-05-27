@@ -59,7 +59,7 @@ eARUPDATER_ERROR ARUPDATER_Manager_PrepareCheckLocaleVersion(ARUPDATER_Manager_t
  * @brief Manage the update of the plf file
  * @pre need to call ARUPDATER_Manager_PrepareCheckLocaleVersion before
  * @warning This function must be called in its own thread.
- * @post ARUPDATER_Manager_CancelThread() must be called.
+ * @post ARUPDATER_Manager_CancelThread() must be called after.
  * @param managerArg : thread data of type ARUPDATER_Manager_t*
  * @return ARUPDATER_OK if operation went well, a descirption of the error otherwise
  * @see ARUPDATER_Manager_CancelThread()

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <libARSAL/ARSAL_Print.h>
 #include <libARUtils/ARUTILS_Http.h>
 #include "ARUPDATER_Updater.h"
@@ -121,6 +122,10 @@ eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
+    if (updater->device != NULL)
+    {
+        free(updater->device);
+    }
     updater->device = (char*) malloc(strlen(device) + 1);
     if (updater->device == NULL)
     {
@@ -132,6 +137,10 @@ eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t
         strcpy(updater->device, device);
     }
     
+    if (updater->plfFolder != NULL)
+    {
+        free(updater->plfFolder);
+    }
     updater->plfFolder = (char*) malloc(strlen(plfFolder) + 1);
     if (updater->plfFolder == NULL)
     {
@@ -143,6 +152,10 @@ eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t
         strcpy(updater->plfFolder, plfFolder);
     }
     
+    if (updater->plfFileName != NULL)
+    {
+        free(updater->plfFileName);
+    }
     updater->plfFileName = (char*) malloc(strlen(plfFileName) + 1);
     if (updater->plfFileName == NULL)
     {
@@ -173,6 +186,7 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
     ARUPDATER_Updater_t *updater = NULL;
     char *filePath;
     ARSAL_Sem_t requestSem;
+    int plfFileNotExisting = 0;
     
     char **dataPtr = malloc(sizeof(char*));
     int dataSize;
@@ -204,6 +218,27 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
         error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
         
         edit = 20; // TODO: delete
+        
+        // if the file does not exist, force to download
+        if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
+        {
+            version = 0;
+            edit = 0;
+            ext = 0;
+            error = ARUPDATER_OK;
+            
+            // also check that the directory exists
+            FILE *dir = fopen(updater->plfFolder, "r");
+            if (dir == NULL)
+            {
+                mkdir(updater->plfFolder, S_IRWXU);
+            }
+            else
+            {
+                fclose(dir);
+            }
+            
+        }
     }
     
     // init the connection

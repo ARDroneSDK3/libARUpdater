@@ -15,7 +15,6 @@
 
 #define ARUPDATER_MANAGER_TAG   "ARUPDATER_Manager"
 
-//ARUTILS_BLEDevice_t device, const char* deviceIP, int port
 ARUPDATER_Manager_t* ARUPDATER_Manager_New(const char *const plfFolder, eARUPDATER_ERROR *error)
 {
     ARUPDATER_Manager_t *manager = NULL;
@@ -31,11 +30,16 @@ ARUPDATER_Manager_t* ARUPDATER_Manager_New(const char *const plfFolder, eARUPDAT
             err = ARUPDATER_ERROR_ALLOC;
         }
     }
+
+    /* Initialize to default values */
+    if(err == ARUPDATER_OK)
+    {
+        manager->updater = ARUPDATER_Updater_New(&err);
+    }
     
     if(err == ARUPDATER_OK)
     {
-        /* Initialize to default values */
-        manager->updater = ARUPDATER_Updater_New(&err);
+        manager->plfSender = ARUPDATER_PlfSender_New(&err);
     }
     
     if (err == ARUPDATER_OK)
@@ -79,6 +83,7 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
         if (manager != NULL)
         {
             ARUPDATER_Updater_Delete(&(manager->updater));
+            ARUPDATER_PlfSender_Delete(&(manager->plfSender));
             
             free(manager->plfFolder);
             
