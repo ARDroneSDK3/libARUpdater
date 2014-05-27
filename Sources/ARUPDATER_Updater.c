@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <libARSAL/ARSAL_Print.h>
-#include <libARUtils/ARUtils_Http.h>
+#include <libARUtils/ARUTILS_Http.h>
 #include "ARUPDATER_Updater.h"
 
 /* ***************************************

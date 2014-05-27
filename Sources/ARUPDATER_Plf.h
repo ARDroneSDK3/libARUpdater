@@ -13,7 +13,7 @@
 #define PLF_CURRENT_VERSION  10
 #define PLF_HEADER_MAGIC     0x21464c50 //!< PLF magic number
 
-#include <libARUPDATER/ARUPDATER_Error.h>
+#include <libARUpdater/ARUPDATER_Error.h>
 
 typedef unsigned int   Plf_Word;        //!< Unsigned 32 bits integer
 typedef unsigned short Plf_Half;        //!< Unsigned 16 bits integer
