@@ -113,14 +113,14 @@ eARUPDATER_ERROR ARUPDATER_Manager_GetPlfVersion(ARUPDATER_Manager_t *manager, c
     return error;
 }
 
-eARUPDATER_ERROR ARUPDATER_Manager_PrepareCheckLocaleVersion(ARUPDATER_Manager_t *manager, const char *const device, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback)
+eARUPDATER_ERROR ARUPDATER_Manager_PrepareCheckLocaleVersion(ARUPDATER_Manager_t *manager, const char *const device, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
     if ((device != NULL) &&
         (plfFileName != NULL))
     {
-        error = ARUPDATER_Updater_PrepareCheckLocaleVersion(manager->updater, device, manager->plfFolder, plfFileName, shouldDownloadCallback, progressCallback, completionCallback);
+        error = ARUPDATER_Updater_PrepareCheckLocaleVersion(manager->updater, device, manager->plfFolder, plfFileName, shouldDownloadCallback, downloadArg, progressCallback, progressArg, completionCallback, completionArg);
     }
     else
     {
@@ -163,6 +163,42 @@ eARUPDATER_ERROR ARUPDATER_Manager_CancelThread (ARUPDATER_Manager_t *manager)
     if (error != ARUPDATER_OK)
     {
         error = ARUPDATER_Updater_CancelThread(manager->updater);
+    }
+    
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, " ");
+    
+    return error;
+}
+
+eARUPDATER_ERROR ARUPDATER_Manager_PrepareSendToDrone(ARUPDATER_Manager_t *manager, const char *const plfFileName, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    if (plfFileName != NULL)
+    {
+        error = ARUPDATER_PlfSender_PrepareSendToDrone(manager->plfSender, manager->plfFolder, plfFileName, progressCallback, progressArg, completionCallback, completionArg);
+    }
+    else
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    return error;
+}
+
+
+eARUPDATER_ERROR ARUPDATER_Manager_SendToDroneThreadRun (void *managerArg)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    
+    if (managerArg != NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    if (error != ARUPDATER_OK)
+    {
+        ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t*)managerArg;
+        error = ARUPDATER_PlfSender_SendToDroneThreadRun(manager->updater);
     }
     
     ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, " ");

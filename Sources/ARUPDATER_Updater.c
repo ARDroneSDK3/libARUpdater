@@ -68,7 +68,13 @@ ARUPDATER_Updater_t* ARUPDATER_Updater_New(eARUPDATER_ERROR *error)
     if(err == ARUPDATER_OK)
     {
         /* Initialize to default values */
-
+        updater->plfFileName = NULL;
+        updater->plfFolder = NULL;
+        updater->device = NULL;
+        
+        updater->downloadArg = NULL;
+        updater->progressArg = NULL;
+        updater->completionArg = NULL;
     }
     
     /* delete the Manager if an error occurred */
@@ -118,7 +124,7 @@ void ARUPDATER_Updater_Delete(ARUPDATER_Updater_t **updater)
 
 }
 
-eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback)
+eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
@@ -161,11 +167,65 @@ eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t
     {
         error = ARUPDATER_ERROR_ALLOC;
     }
-    
     if (ARUPDATER_OK == error)
     {
         strcpy(updater->plfFileName, plfFileName);
     }
+    
+    if (updater->downloadArg != NULL)
+    {
+        free(updater->downloadArg);
+        updater->downloadArg = NULL;
+    }
+    if (downloadArg != NULL)
+    {
+        updater->downloadArg = malloc(sizeof(downloadArg));
+        if (updater->downloadArg == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        if (ARUPDATER_OK == error)
+        {
+            memcpy(updater->downloadArg, downloadArg, sizeof(downloadArg));
+        }
+    }
+    
+    if (updater->progressArg != NULL)
+    {
+        free(updater->progressArg);
+        updater->progressArg = NULL;
+    }
+    if (progressArg != NULL)
+    {
+        updater->progressArg = malloc(sizeof(progressArg));
+        if (updater->progressArg == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        if (ARUPDATER_OK == error)
+        {
+            memcpy(updater->progressArg, progressArg, sizeof(progressArg));
+        }
+    }
+    
+    if (updater->completionArg != NULL)
+    {
+        free(updater->completionArg);
+        updater->completionArg = NULL;
+    }
+    if (completionArg != NULL)
+    {
+        updater->completionArg = malloc(sizeof(completionArg));
+        if (updater->completionArg == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        if (ARUPDATER_OK == error)
+        {
+            memcpy(updater->completionArg, completionArg, sizeof(completionArg));
+        }
+    }
+    
     
     updater->shouldDownloadCallback = shouldDownloadCallback;
     updater->plfDownloadProgressCallback = progressCallback;
@@ -319,7 +379,7 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
             // no need to update the plf file
             if (updater->shouldDownloadCallback != NULL)
             {
-                updater->shouldDownloadCallback(updaterArg, 0);
+                updater->shouldDownloadCallback(updater->downloadArg, 0);
             }
         }
         else if (strcmp(result, ARUPDATER_UDPATER_PHP_ERROR_UPDATE) == 0)
@@ -327,7 +387,7 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
             // need to update the plf file
             if (updater->shouldDownloadCallback != NULL)
             {
-                updater->shouldDownloadCallback(updaterArg, 1);
+                updater->shouldDownloadCallback(updater->downloadArg, 1);
             }
             ARUTILS_Http_Connection_t *dlConnection = NULL;
             ARSAL_Sem_t cancelSem;
@@ -370,7 +430,7 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
             
             if (error == ARUPDATER_OK)
             {
-                utilsError = ARUTILS_Http_Get(dlConnection, downloadEndUrl, downloadedFilePath, updater->plfDownloadProgressCallback, "progress : ");
+                utilsError = ARUTILS_Http_Get(dlConnection, downloadEndUrl, downloadedFilePath, updater->plfDownloadProgressCallback, updater->progressArg);
                 if (utilsError != ARUTILS_OK)
                 {
                     error = ARUPDATER_ERROR_UPDATER_ARUTILS_ERROR;
@@ -425,7 +485,7 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
             
             if (updater->plfDownloadCompletionCallback != NULL)
             {
-                updater->plfDownloadCompletionCallback(updaterArg, error);
+                updater->plfDownloadCompletionCallback(updater->completionArg, error);
             }
         }
         else

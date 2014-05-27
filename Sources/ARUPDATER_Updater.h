@@ -17,6 +17,11 @@ typedef struct ARUPDATER_Updater_t
     char *plfFileName;
     char *plfFolder;
     char *device;
+    
+    void *downloadArg;
+    void *progressArg;
+    void *completionArg;
+    
     ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback;
     ARUPDATER_Updater_PlfDownloadProgressCallback_t plfDownloadProgressCallback;
     ARUPDATER_Updater_PlfDownloadCompletionCallback_t plfDownloadCompletionCallback;
@@ -48,7 +53,7 @@ void ARUPDATER_Updater_Delete(ARUPDATER_Updater_t **updater);
  * @param[in] plfFileName : the file name of the plf
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  */
-eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback);
+eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback, void *completionArg);
 
 /**
  * @brief Update of the plf file if needed

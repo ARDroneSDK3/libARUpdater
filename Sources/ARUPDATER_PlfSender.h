@@ -44,6 +44,9 @@ ARUPDATER_PlfSender_t* ARUPDATER_PlfSender_New(eARUPDATER_ERROR *error);
  */
 void ARUPDATER_PlfSender_Delete(ARUPDATER_PlfSender_t **plfSender);
 
+//TODO:
+eARUPDATER_ERROR ARUPDATER_PlfSender_PrepareSendToDrone(ARUPDATER_PlfSender_t *plfSender, const char *const plfFolder, const char *const plfFileName, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg);
+
 /**
  * @brief Send the plf file on the smartphone/tablet and send it to the drone
  * @warning This function must be called in its own thread.
