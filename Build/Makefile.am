@@ -5,13 +5,19 @@ ACLOCAL_AMFLAGS                                             =   -I m4
 
 # The list of header files that belong to the library (to be installed later)
 HEADER_FILES                                                =   ../Includes/libARUpdater/ARUPDATER_Manager.h \
+                                                                ../Includes/libARUpdater/ARUPDATER_Updater.h \
                                                                 ../Includes/libARUpdater/ARUPDATER_Error.h \
                                                                 ../Includes/libARUpdater/ARUpdater.h
 
 # The sources to add to the library and to add to the source distribution
 SOURCE_FILES                                                =   $(HEADER_FILES)\
                                                                 ../Sources/ARUPDATER_Manager.c \
-                                                                ../Sources/ARUPDATER_Manager.h
+                                                                ../Sources/ARUPDATER_Manager.h \
+                                                                ../Sources/ARUPDATER_Updater.c \
+                                                                ../Sources/ARUPDATER_Updater.h \
+                                                                ../Sources/ARUPDATER_Plf.c     \
+                                                                ../Sources/ARUPDATER_Plf.h     \
+                                                                ../Sources/ARUPDATER_Error.c
                                 
 if HAVE_OBJECTIVE_C
 
@@ -31,19 +37,18 @@ libarupdater_la_SOURCES                                =   $(SOURCE_FILES)
 endif
 
 
-check_PROGRAMS                                              =   ../TestBench/Linux/autoTest
-# bin_PROGRAMS                                              =   ../TestBench/Linux/autoTest
+check_PROGRAMS                                              =   libarupdater_autoTest
+# bin_PROGRAMS                                              =   libarupdater_autoTest
 
-___TestBench_Linux_autoTest_SOURCES                         =   ../TestBench/Linux/autoTest.c \
-                                                                ../TestBench/Linux/test_manager.c
+libarupdater_autoTest_SOURCES                               =   ../TestBench/Linux/autoTest.c
 
 if DEBUG_MODE
-___TestBench_Linux_autoTest_LDADD                           =   libarupdater_dbg.la \
+libarupdater_autoTest_LDADD                                 =   libarupdater_dbg.la \
                                                                 -larsal_dbg         \
                                                                 -larutils_dbg       \
                                                                 -lcurl
 else
-___TestBench_Linux_autoTest_LDADD                           =   libarupdater.la     \
+libarupdater_autoTest_LDADD                                 =   libarupdater.la     \
                                                                 -larsal             \
                                                                 -larutils           \
                                                                 -lcurl

@@ -5,42 +5,57 @@
  * @author david.flattin.ext@parrot.com
  **/
 #include <stdlib.h>
+#include <stdio.h>
 #include <libARSAL/ARSAL_Print.h>
 
 #include "libARUpdater/ARUPDATER_Error.h"
 #include "libARUpdater/ARUPDATER_Manager.h"
 #include "ARUPDATER_Manager.h"
 
-#define ARUPDATER_MANAGER_TAG   "Updater"
+#define ARUPDATER_MANAGER_TAG   "ARUPDATER_Manager"
 
 //ARUTILS_BLEDevice_t device, const char* deviceIP, int port
-ARUPDATER_Manager_t* ARUPDATER_Manager_New (eARUPDATER_ERROR *error)
+ARUPDATER_Manager_t* ARUPDATER_Manager_New(eARUPDATER_ERROR *error)
 {
-    ARUPDATER_Manager_t *newManager = NULL;
-    eARUPDATER_ERROR result = 0;
-
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, "");
-
-    newManager = calloc(1, sizeof(ARUPDATER_Manager_t));
-
-    if (newManager == NULL)
+    ARUPDATER_Manager_t *manager = NULL;
+    eARUPDATER_ERROR err = ARUPDATER_OK;
+    
+    /* Check parameters */
+    if(err == ARUPDATER_OK)
     {
-        result = ARUPDATER_ERROR_ALLOC;
+        /* Create the Manager */
+        manager = malloc (sizeof (ARUPDATER_Manager_t));
+        if (manager == NULL)
+        {
+            err = ARUPDATER_ERROR_ALLOC;
+        }
     }
-
-    if (result != ARUPDATER_OK)
+    
+    if(err == ARUPDATER_OK)
     {
-        ARUPDATER_Manager_Delete(&newManager);
+        /* Initialize to default values */
+        manager->updater = ARUPDATER_Updater_New(&err);
     }
-
-    *error = result;
-    return newManager;
+    
+    /* delete the Manager if an error occurred */
+    if (err != ARUPDATER_OK)
+    {
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_MANAGER_TAG, "error: %s", ARUPDATER_Error_ToString (err));
+        ARUPDATER_Manager_Delete (&manager);
+    }
+    
+    /* return the error */
+    if (error != NULL)
+    {
+        *error = err;
+    }
+    
+    return manager;
 }
-
 
 void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
 {
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, "     ");
 
     if (managerPtrAddr != NULL)
     {
@@ -54,21 +69,61 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
     }
 }
 
-eARUPDATER_ERROR ARUPDATER_Manager_ThreadRun (void *managerArg)
+eARUPDATER_ERROR ARUPDATER_Manager_PrepareCheckLocaleVersion(ARUPDATER_Manager_t *manager, const char *const device, const char *const serial, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback)
 {
-    ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t*)managerArg;
-    eARUPDATER_ERROR result = ARUPDATER_OK;
+    eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, "");
+    if ((device != NULL) &&
+        (serial != NULL) &&
+        (plfFolder != NULL) &&
+        (plfFileName != NULL))
+    {
+        error = ARUPDATER_Updater_PrepareCheckLocaleVersion(manager->updater, device, serial, plfFolder, plfFileName, shouldDownloadCallback, progressCallback, completionCallback);
+    }
+    else
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
     
-    return result;
+    return error;
+}
+
+
+eARUPDATER_ERROR ARUPDATER_Manager_CheckLocaleVersionThreadRun (void *managerArg)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    
+    if (managerArg != NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    if (error != ARUPDATER_OK)
+    {
+        ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t*)managerArg;
+        error = ARUPDATER_Updater_CheckLocaleVersionThreadRun(manager->updater);
+    }
+    
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, " ");
+    
+    return error;
 }
 
 eARUPDATER_ERROR ARUPDATER_Manager_CancelThread (ARUPDATER_Manager_t *manager)
 {
-    eARUPDATER_ERROR result = ARUPDATER_OK;
+    eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, "");
+    if (manager != NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
     
-    return result;
+    if (error != ARUPDATER_OK)
+    {
+        error = ARUPDATER_Updater_CancelThread(manager->updater);
+    }
+    
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_MANAGER_TAG, " ");
+    
+    return error;
 }

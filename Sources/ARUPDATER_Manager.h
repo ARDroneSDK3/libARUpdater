@@ -8,6 +8,8 @@
 #ifndef _ARUPDATER_MANAGER_PRIVATE_H_
 #define _ARUPDATER_MANAGER_PRIVATE_H_
 
+#include "ARUPDATER_Updater.h"
+
 /**
  * @brief Manager structure
  * @param 
@@ -16,9 +18,7 @@
  */
 struct ARUPDATER_Manager_t
 {
-    
-    
-    int dummy;
+    ARUPDATER_Updater_t *updater;
 };
 
 #endif /* _ARUPDATER_MANAGER_PRIVATE_H_ */
