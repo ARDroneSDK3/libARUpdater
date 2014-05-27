@@ -82,10 +82,10 @@ int main(int argc, char *argv[])
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    ARUPDATER_Manager_t *managerPtr = ARUPDATER_Manager_New(&error);
+    ARUPDATER_Manager_t *managerPtr = ARUPDATER_Manager_New("./", &error);
     if(error == ARUPDATER_OK)
     {
-        error = ARUPDATER_Manager_PrepareCheckLocaleVersion(managerPtr, "0900", "1234", "./", "delos_lucie_updater_payload.plf", test_http_should_download_callback, test_http_progress_callback, test_http_download_completion_callback);
+        error = ARUPDATER_Manager_PrepareCheckLocaleVersion(managerPtr, "0900", "delos_lucie_updater_payload.plf", test_http_should_download_callback, test_http_progress_callback, test_http_download_completion_callback);
         
         if (error == ARUPDATER_OK)
         {

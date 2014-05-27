@@ -1,10 +1,9 @@
-//
-//  ARUPDATER_Updater.h
-//  ARUpdaterCLibProject
-//
-//  Created by Djavan Bertrand on 27/05/2014.
-//
-//
+/**
+ * @file ARUPDATER_Updater.h
+ * @brief libARUpdater Updater header file.
+ * @date 23/05/2014
+ * @author djavan.bertrand@parrot.com
+ **/
 
 #ifndef _ARUPDATER_UPDATER_H_
 #define _ARUPDATER_UPDATER_H_

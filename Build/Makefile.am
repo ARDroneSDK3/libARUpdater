@@ -17,6 +17,8 @@ SOURCE_FILES                                                =   $(HEADER_FILES)\
                                                                 ../Sources/ARUPDATER_Updater.h \
                                                                 ../Sources/ARUPDATER_Plf.c     \
                                                                 ../Sources/ARUPDATER_Plf.h     \
+                                                                ../Sources/ARUPDATER_Utils.c   \
+                                                                ../Sources/ARUPDATER_Utils.h   \
                                                                 ../Sources/ARUPDATER_Error.c
                                 
 if HAVE_OBJECTIVE_C

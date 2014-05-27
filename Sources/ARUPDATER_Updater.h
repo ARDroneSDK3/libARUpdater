@@ -19,7 +19,6 @@ typedef struct ARUPDATER_Updater_t
     char *plfFileName;
     char *plfFolder;
     char *device;
-    char *serial;
     ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback;
     ARUPDATER_Updater_PlfDownloadProgressCallback_t plfDownloadProgressCallback;
     ARUPDATER_Updater_PlfDownloadCompletionCallback_t plfDownloadCompletionCallback;
@@ -48,12 +47,11 @@ void ARUPDATER_Updater_Delete(ARUPDATER_Updater_t **updater);
  * @brief Set the variable before checking the locale version
  * @param updater : pointer on the updater
  * @param[in] device : the device codename
- * @param[in] serial : the serial of the device
  * @param[in] plfFolder : the folder where is stored the plfFile
  * @param[in] plfFileName : the file name of the plf
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  */
-eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const serial, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback);
+eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback);
 
 /**
  * @brief Update of the plf file if needed

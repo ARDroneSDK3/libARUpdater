@@ -1,10 +1,9 @@
-//
-//  ARUPDATER_Updater.c
-//  ARUpdaterCLibProject
-//
-//  Created by Djavan Bertrand on 23/05/2014.
-//
-//
+/**
+ * @file ARUPDATER_Updater.c
+ * @brief libARUpdater Updater c file.
+ * @date 23/05/2014
+ * @author djavan.bertrand@parrot.com
+ **/
 
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +11,7 @@
 #include <libARSAL/ARSAL_Print.h>
 #include <libARUtils/ARUTILS_Http.h>
 #include "ARUPDATER_Updater.h"
-
+#include "ARUPDATER_Utils.h"
 /* ***************************************
  *
  *             define :
@@ -29,6 +28,7 @@
 #define ARUPDATER_UDPATER_VERSION_PARAM                 "&version="
 #define ARUPDATER_UDPATER_VERSION_SEPARATOR             "."
 #define ARUPDATER_UDPATER_DOWNLOADED_FILE_PREFIX        "tmp_"
+#define ARUPDATER_UDPATER_SERIAL_DEFAULT_VALUE          "0000"
 
 #define ARUPDATER_UDPATER_PHP_ERROR_OK                  "0"
 #define ARUPDATER_UDPATER_PHP_ERROR_UNKNOWN             "1"
@@ -41,9 +41,6 @@
 
 #define ARUPDATER_UDPATER_HTTP_HEADER                   "http://"
 
-
-#define DEVICE "0900"
-#define SERIAL "1234"
 
 /* ***************************************
  *
@@ -104,14 +101,13 @@ void ARUPDATER_Updater_Delete(ARUPDATER_Updater_t **updater)
         updaterPtr = *updater;
         
         // Uninitialize here
-        free(updaterPtr->plfFolder);
-        free(updaterPtr->plfFileName);
-        free(updaterPtr->device);
-        free(updaterPtr->serial);
-        fprintf(stderr, "ARUPDATER_Updater_Delete called\n");
         
         if (updaterPtr)
         {
+            free(updaterPtr->plfFolder);
+            free(updaterPtr->plfFileName);
+            free(updaterPtr->device);
+            
             free (updaterPtr);
             updaterPtr = NULL;
         }
@@ -121,7 +117,7 @@ void ARUPDATER_Updater_Delete(ARUPDATER_Updater_t **updater)
 
 }
 
-eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const serial, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback)
+eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t *updater, const char *const device, const char *const plfFolder, const char *const plfFileName, ARUPDATER_Updater_ShouldDownloadPlfCallback_t shouldDownloadCallback, ARUPDATER_Updater_PlfDownloadProgressCallback_t progressCallback, ARUPDATER_Updater_PlfDownloadCompletionCallback_t completionCallback)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
@@ -134,17 +130,6 @@ eARUPDATER_ERROR ARUPDATER_Updater_PrepareCheckLocaleVersion(ARUPDATER_Updater_t
     if (ARUPDATER_OK == error)
     {
         strcpy(updater->device, device);
-    }
-    
-    updater->serial = (char*) malloc(strlen(serial) + 1);
-    if (updater->serial == NULL)
-    {
-        error = ARUPDATER_ERROR_ALLOC;
-    }
-    
-    if (ARUPDATER_OK == error)
-    {
-        strcpy(updater->serial, serial);
     }
     
     updater->plfFolder = (char*) malloc(strlen(plfFolder) + 1);
@@ -180,7 +165,6 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    plf_phdr_t header;
     ARUTILS_Http_Connection_t *connection = NULL;
     int version;
     int edit;
@@ -205,8 +189,7 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
     // check that the member variables are set
     if ((updater->plfFileName == NULL) ||
         (updater->plfFolder == NULL) ||
-        (updater->device == NULL) ||
-        (updater->serial == NULL))
+        (updater->device == NULL))
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
@@ -218,16 +201,9 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
         strcpy(filePath, updater->plfFolder);
         strcat(filePath, updater->plfFileName);
         
-        error = ARUPDATER_Plf_GetHeader(filePath, &header);
-    }
-    
-    // set the variables according to the header
-    if (error == ARUPDATER_OK)
-    {
-        version = header.p_ver;
-        edit = header.p_edit;
-        //edit = 20; // TODO: delete
-        ext = header.p_ext;
+        error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
+        
+        edit = 20; // TODO: delete
     }
     
     // init the connection
@@ -246,10 +222,10 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
         // create the url params
         char *params = malloc(ARUPDATER_UDPATER_PARAM_MAX_LENGTH);
         strncpy(params, ARUPDATER_UDPATER_PRODUCT_PARAM, strlen(ARUPDATER_UDPATER_PRODUCT_PARAM));
-        strncat(params, DEVICE, strlen(DEVICE));
+        strncat(params, updater->device, strlen(updater->device));
         
         strncat(params, ARUPDATER_UDPATER_SERIAL_PARAM, strlen(ARUPDATER_UDPATER_SERIAL_PARAM));
-        strncat(params, SERIAL, strlen(SERIAL));
+        strncat(params, ARUPDATER_UDPATER_SERIAL_DEFAULT_VALUE, strlen(ARUPDATER_UDPATER_SERIAL_DEFAULT_VALUE));
         
         strncat(params, ARUPDATER_UDPATER_VERSION_PARAM, strlen(ARUPDATER_UDPATER_VERSION_PARAM));
         sprintf(buffer,"%i",version);
@@ -385,18 +361,19 @@ eARUPDATER_ERROR ARUPDATER_Updater_CheckLocaleVersionThreadRun(void *updaterArg)
             // if no error, check the md5
             if (error == ARUPDATER_OK)
             {
-                // TODO: check md5
-                /*crypto_hash_t *md5=crypto_hash_md5_new();
+                /*// TODO: check md5
+                crypto_hash_t *md5=crypto_hash_md5_new();
                 
                 char line[ARUPDATER_UDPATER_CHUNK_SIZE];
-                uint8_t *test = malloc(128);
+                uint8_t *test = malloc(16);
                 FILE* file = fopen(downloadedFilePath, "r");
-                while (fgets(line, ARUPDATER_UDPATER_CHUNK_SIZE, file) != NULL)
+                while (fread(line, ARUPDATER_UDPATER_CHUNK_SIZE, 1, file) != NULL)
                 {
-                    md5->push_data(md5, (uint8_t*)line, strlen(line));
+                    fprintf(stderr, "%i\n", strlen(line));
+                    md5->push_data(md5, (uint8_t*)line, ARUPDATER_UDPATER_CHUNK_SIZE);
                 }
-                int i = ARUPDATER_UDPATER_CHUNK_SIZE;
-                md5->get_hash(md5, test, 128 );
+                md5->get_hash(md5, test, 128/8);
+                md5->destroy(md5);
                 fprintf(stderr, "md5 = %x\n", test);*/
             }
             

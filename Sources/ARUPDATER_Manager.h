@@ -19,6 +19,8 @@
 struct ARUPDATER_Manager_t
 {
     ARUPDATER_Updater_t *updater;
+    
+    char *plfFolder;
 };
 
 #endif /* _ARUPDATER_MANAGER_PRIVATE_H_ */
