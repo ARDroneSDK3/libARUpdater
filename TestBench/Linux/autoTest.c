@@ -93,10 +93,17 @@ int main(int argc, char *argv[])
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    ARUPDATER_Manager_t *managerPtr = ARUPDATER_Manager_New("./test/", &error);
+    ARUPDATER_Manager_t *manager = ARUPDATER_Manager_New(&error);
     if(error == ARUPDATER_OK)
     {
-        error = ARUPDATER_Manager_PrepareCheckLocaleVersion(managerPtr, "0900", "delos_lucie_updater_payload.plf", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
+        
+        error =  ARUPDATER_Downloader_New(manager, "./test/", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
+        
+        if (error == ARUPDATER_OK)
+        {
+            error = ARUPDATER_Downloader_ThreadRun(manager);
+        }
+        /*error = ARUPDATER_Manager_PrepareCheckLocaleVersion(managerPtr, "0900", "delos_lucie_updater_payload.plf", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
         
         if (error == ARUPDATER_OK)
         {
@@ -113,14 +120,14 @@ int main(int argc, char *argv[])
         {
             // launch the thread
             error = ARUPDATER_Manager_SendToDroneThreadRun(managerPtr);
-        }
+        }*/
         
-        ARUPDATER_Manager_Delete(&managerPtr);
+        ARUPDATER_Manager_Delete(&manager);
     }
     else
     {
         // if there was an error in creating a new manager
-        ARUPDATER_Manager_Delete(&managerPtr);
+        ARUPDATER_Manager_Delete(&manager);
     }
     
     fprintf(stderr, "Sum up : %s\n", ARUPDATER_Error_ToString(error));

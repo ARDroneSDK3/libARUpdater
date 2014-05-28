@@ -10,5 +10,5 @@
 
 #include <libARUpdater/ARUPDATER_Error.h>
 #include <libARUpdater/ARUPDATER_Manager.h>
-
+#include <libARUpdater/ARUPDATER_Downloader.h>
 #endif /* _ARUPDATER_H_ */

@@ -8,7 +8,7 @@
 #ifndef _ARUPDATER_MANAGER_PRIVATE_H_
 #define _ARUPDATER_MANAGER_PRIVATE_H_
 
-#include "ARUPDATER_Updater.h"
+#include "ARUPDATER_Downloader.h"
 #include "ARUPDATER_PlfSender.h"
 
 /**
@@ -19,7 +19,7 @@
  */
 struct ARUPDATER_Manager_t
 {
-    ARUPDATER_Updater_t *updater;
+    ARUPDATER_Downloader_t *downloader;
     ARUPDATER_PlfSender_t *plfSender;
     
     char *plfFolder;

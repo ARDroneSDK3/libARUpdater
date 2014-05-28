@@ -17,7 +17,7 @@
  *             define :
  *
  *****************************************/
-#define ARUPDATER_UDPATER_TAG                   "ARUPDATER_PlfSender"
+#define ARUPDATER_PLFSENDER_TAG                   "ARUPDATER_PlfSender"
 #define ARUPDATER_PLFSENDER_REMOTE_FOLDER       "/"
 
 /* ***************************************
@@ -55,7 +55,7 @@ ARUPDATER_PlfSender_t* ARUPDATER_PlfSender_New(eARUPDATER_ERROR *error)
     /* delete the plf Sender if an error occurred */
     if (err != ARUPDATER_OK)
     {
-        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_UDPATER_TAG, "error: %s", ARUPDATER_Error_ToString (err));
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_PLFSENDER_TAG, "error: %s", ARUPDATER_Error_ToString (err));
         ARUPDATER_PlfSender_Delete (&plfSender);
     }
     
@@ -221,7 +221,7 @@ eARUPDATER_ERROR ARUPDATER_PlfSender_SendToDroneThreadRun(void *plfSenderArg)
         strcpy(localPath, plfSender->plfFolder);
         strcat(localPath, plfSender->plfFileName);
         
-        //dataTransferError = ARDATATRANSFER_Uploader_New(dataTransferManager, utilsManager, ARUPDATER_PLFSENDER_REMOTE_FOLDER, localPath, plfSender->progressCallback, plfSender->progressArg, plfSender->completionCallback, plfSender->completionArg, ARDATATRANSFER_UPLOADER_RESUME_TRUE);
+        dataTransferError = ARDATATRANSFER_Uploader_New(dataTransferManager, utilsManager, ARUPDATER_PLFSENDER_REMOTE_FOLDER, localPath, plfSender->progressCallback, plfSender->progressArg, plfSender->completionCallback, plfSender->completionArg, ARDATATRANSFER_UPLOADER_RESUME_TRUE);
         
         ARDATATRANSFER_Uploader_ThreadRun(dataTransferManager);
         
