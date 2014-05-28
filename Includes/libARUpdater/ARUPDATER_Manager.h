@@ -10,7 +10,7 @@
 
 #include <libARUpdater/ARUPDATER_Updater.h>
 #include <libARUpdater/ARUPDATER_Error.h>
-#include <libARDataTransfer/ARDATATRANSFER.h>
+#include <libARDataTransfer/ARDataTransfer.h>
 #include <libARDataTransfer/ARDATATRANSFER_Uploader.h>
 
 /**

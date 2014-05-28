@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libARSAL/ARSAL_Print.h>
-#include <libARUtils/ARUTILS.h>
+#include <libARUtils/ARUtils.h>
 
 #include "ARUPDATER_PlfSender.h"
 
