@@ -41,6 +41,7 @@ typedef void (*ARUPDATER_Downloader_PlfDownloadCompletionCallback_t) (void* arg,
  * @warning this function allocates memory
  * @post ARUPDATER_Downloader_Delete should be called
  * @param manager : pointer on the manager
+ * @param[in] rootFolder : root folder
  * @param[in] shouldDownloadCallback : callback which tells if the plf will be downloaded or not
  * @param[in|out] downloadArg : arg given to the shouldDownloadCallback
  * @param[in] progressCallback : callback which tells the progress of the download
@@ -50,7 +51,7 @@ typedef void (*ARUPDATER_Downloader_PlfDownloadCompletionCallback_t) (void* arg,
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  * @see ARUPDATER_Downloader_Delete()
  */
-eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const plfFolder, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg);
+eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg);
 
 /**
  * @brief Delete the Downloader of the Manager
@@ -68,7 +69,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager);
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  * @see ARUPDATER_Downloader_CancelThread()
  */
-eARUPDATER_ERROR ARUPDATER_Downloader_ThreadRun(void *managerArg);
+void* ARUPDATER_Downloader_ThreadRun(void *managerArg);
 
 /**
  * @brief cancel the update

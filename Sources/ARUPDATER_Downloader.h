@@ -11,12 +11,11 @@
 
 #include <libARUpdater/ARUPDATER_Error.h>
 #include <libARUpdater/ARUPDATER_Downloader.h>
+#include <libARSAL/ARSAL_Mutex.h>
 
 struct ARUPDATER_Downloader_t
 {
-    char *plfFileName;
-    char *plfFolder;
-    char *device;
+    char *rootFolder;
     
     void *downloadArg;
     void *progressArg;
@@ -25,8 +24,10 @@ struct ARUPDATER_Downloader_t
     int isRunning;
     int isCanceled;
     
-    ARSAL_Sem_t requestSem;
-    ARSAL_Sem_t dlSem;
+    ARSAL_Mutex_t requestLock;
+    ARSAL_Mutex_t downloadLock;
+    ARUTILS_Http_Connection_t *requestConnection;
+    ARUTILS_Http_Connection_t *downloadConnection;
     
     ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback;
     ARUPDATER_Downloader_PlfDownloadProgressCallback_t plfDownloadProgressCallback;

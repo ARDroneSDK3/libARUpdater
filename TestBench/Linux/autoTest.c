@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libARUpdater/ARUpdater.h>
-
+#include <libARDiscovery/ARDISCOVERY_Discovery.h>
 
 /* ****************************************
  *
@@ -50,7 +50,7 @@ void test_http_progress_callback(void* arg, uint8_t percent)
 {
     char *message = (char *)arg;
     
-    printf("%s %d%%\n", message ? message : "null", percent);
+    //printf("%s %d%%\n", message ? message : "null", percent);
 }
 
 void test_http_should_download_callback(void* arg, int shouldDownload)
@@ -101,7 +101,33 @@ int main(int argc, char *argv[])
         
         if (error == ARUPDATER_OK)
         {
-            error = ARUPDATER_Downloader_ThreadRun(manager);
+            error = (eARUPDATER_ERROR)ARUPDATER_Downloader_ThreadRun(manager);
+        }
+        
+        fprintf(stderr, "Download finish, uploading now \n");
+        if (error == ARUPDATER_OK)
+        {
+            eARUTILS_ERROR ftpError = ARUTILS_OK;
+            ARUTILS_Manager_t *ftpManager = ARUTILS_Manager_New(&ftpError);
+            
+            if(ftpError == ARUTILS_OK)
+            {
+                ftpError = ARUTILS_Manager_InitWifiFtp(ftpManager, "172.20.5.48", 21, "d.bertrand", "Parrot0104");
+            }
+            
+            if(ftpError == ARUTILS_OK)
+            {
+                error = ARUPDATER_Uploader_New(manager, "./test/", ftpManager, ARDISCOVERY_PRODUCT_JS, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
+            }
+            else
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARUTILS_ERROR;
+            }
+        }
+        
+        if (error == ARUPDATER_OK)
+        {
+            error = (eARUPDATER_ERROR)ARUPDATER_Uploader_ThreadRun(manager);
         }
         /*error = ARUPDATER_Manager_PrepareCheckLocaleVersion(managerPtr, "0900", "delos_lucie_updater_payload.plf", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
         

@@ -11,7 +11,7 @@
 #include <libARUpdater/ARUPDATER_Error.h>
 #include <libARDataTransfer/ARDataTransfer.h>
 #include <libARDataTransfer/ARDATATRANSFER_Uploader.h>
-
+#include <libARDiscovery/ARDISCOVERY_Discovery.h>
 
 /**
  * @brief Manager structure
@@ -22,8 +22,7 @@ typedef struct ARUPDATER_Manager_t ARUPDATER_Manager_t;
 /**
  * @brief Create a new ARUpdater Manager
  * @warning This function allocates memory
- * @param[in] plfFolder : the folder where is stored the plfFile
- * @param[out] error A pointer on the error output
+ * @param[out] error A pointer on the error output. Can be null
  * @return Pointer on the new ARUpdater Manager
  * @see ARUPDATER_Manager_Delete ()
  */
@@ -40,13 +39,15 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr);
 /**
  * @brief get the version of a given plf file
  * @param manager : pointer on the manager
- * @param[in] plfFileName : file name of the plf file
- * @param[out] version : pointer on the version to be returned
- * @param[out] edition : pointer on the edition to be returned
- * @param[out] extension : pointer on the extension to be returned
- * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+ * @param[in] rootFolder : root folder of the plf
+ * @param[in] product : the plf of the product to be tested
+ * @param[in] version : the version of the remote plf
+ * @param[in] edition : the edition of the remote plf
+ * @param[in] extension : the extension of the remote plf
+ * @param[out] error : ARUPDATER_OK if operation went well, the description of the error otherwise. Can be null
+ * @return 1 if the product plf is at the same version (or more recent) as the local plf
  */
- eARUPDATER_ERROR ARUPDATER_Manager_GetPlfVersion(ARUPDATER_Manager_t *manager, const char *const plfFileName, int *version, int *edition, int *extension);
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, eARUPDATER_ERROR *error);
 
 #endif /* _ARUPDATER_MANAGER_H_ */
 

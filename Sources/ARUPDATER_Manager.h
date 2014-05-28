@@ -9,7 +9,12 @@
 #define _ARUPDATER_MANAGER_PRIVATE_H_
 
 #include "ARUPDATER_Downloader.h"
-#include "ARUPDATER_PlfSender.h"
+#include "ARUPDATER_Uploader.h"
+
+#define ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE        10
+#define ARUPDATER_MANAGER_FOLDER_SEPARATOR              "/"
+#define ARUPDATER_MANAGER_PLF_FILENAME                  "plf.plf"
+#define ARUPDATER_MANAGER_PLF_FOLDER                    "plfFolder/"
 
 /**
  * @brief Manager structure
@@ -20,9 +25,8 @@
 struct ARUPDATER_Manager_t
 {
     ARUPDATER_Downloader_t *downloader;
-    ARUPDATER_PlfSender_t *plfSender;
+    ARUPDATER_Uploader_t *uploader;
     
-    char *plfFolder;
 };
 
 #endif /* _ARUPDATER_MANAGER_PRIVATE_H_ */

@@ -15,6 +15,7 @@
 
 #define ARUPDATER_MANAGER_TAG   "ARUPDATER_Manager"
 
+
 ARUPDATER_Manager_t* ARUPDATER_Manager_New(eARUPDATER_ERROR *error)
 {
     ARUPDATER_Manager_t *manager = NULL;
@@ -63,33 +64,71 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
             {
                 ARUPDATER_Downloader_Delete(manager);
             }
-            ARUPDATER_PlfSender_Delete(&(manager->plfSender));
             
-            free(manager->plfFolder);
-            
+            if (manager->uploader != NULL)
+            {
+                ARUPDATER_Uploader_Delete(manager);
+            }
+                        
             free(manager);
             *managerPtrAddr = NULL;
         }
     }
 }
 
-eARUPDATER_ERROR ARUPDATER_Manager_GetPlfVersion(ARUPDATER_Manager_t *manager, const char *const plfFileName, int *version, int *edition, int *extension)
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, eARUPDATER_ERROR *error)
 {
-    eARUPDATER_ERROR error = ARUPDATER_OK;
+    eARUPDATER_ERROR err = ARUPDATER_OK;
     
-    if ((manager != NULL) &&
-        (plfFileName != NULL) &&
-        (version != NULL) &&
-        (edition != NULL) &&
-        (extension != NULL))
+    int sourceVersion, sourceEdition, sourceExtension;
+    int retVal = 1;
+    
+    if ((manager == NULL) ||
+        (rootFolder == NULL))
     {
-        char *filePath = malloc(strlen(manager->plfFolder) + strlen(plfFileName) + 1);
-        strcpy(filePath, manager->plfFolder);
-        strcat(filePath, plfFileName);
-        
-        error = ARUPDATER_Utils_GetPlfVersion(filePath, version, edition, extension);
+        err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
     
-    return error;
+    if (err == ARUPDATER_OK)
+    {
+        uint16_t productId = ARDISCOVERY_getProductID(product);
+        char *device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
+        snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+        
+        char *sourceFilePath = malloc(strlen(rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1);
+        strcpy(sourceFilePath, rootFolder);
+        strcat(sourceFilePath, ARUPDATER_MANAGER_PLF_FOLDER);
+        strcat(sourceFilePath, device);
+        strcat(sourceFilePath, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+        strcat(sourceFilePath, ARUPDATER_MANAGER_PLF_FILENAME);
+
+        err = ARUPDATER_Utils_GetPlfVersion(sourceFilePath, &sourceVersion, &sourceEdition, &sourceExtension);
+        
+        free(sourceFilePath);
+        free(device);
+    }
+    
+    if (err == ARUPDATER_OK)
+    {
+        if (sourceVersion > version)
+        {
+            retVal = 0;
+        }
+        else if((sourceVersion == version) && (sourceEdition > edition))
+        {
+            retVal = 0;
+        }
+        else if((sourceVersion == version) && (sourceEdition == edition) && (sourceExtension > extension))
+        {
+            retVal = 0;
+        }
+    }
+    
+    if (error != NULL)
+    {
+        *error = err;
+    }
+    
+    return retVal;
 }
 
