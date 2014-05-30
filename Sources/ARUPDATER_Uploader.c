@@ -72,9 +72,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         
         uploader->isRunning = 0;
         uploader->isCanceled = 0;
-        
-        uploader->uploadConnection = NULL;
-        
+        uploader->isUploadThreadRunning = 0;
+                
         if (progressArg != NULL)
         {
             uploader->progressArg = malloc(sizeof(progressArg));
@@ -97,6 +96,17 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         
         uploader->progressCallback = progressCallback;
         uploader->completionCallback = completionCallback;
+    }
+    
+    // create the data transfer manager
+    if (ARUPDATER_OK == err)
+    {
+        eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
+        uploader->dataTransferManager = ARDATATRANSFER_Manager_New(&dataTransferError);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            err = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
     }
     
     if (err == ARUPDATER_OK)
@@ -154,6 +164,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
                     free(manager->uploader->completionArg);
                 }
                 
+                ARDATATRANSFER_Manager_Delete(&manager->uploader->dataTransferManager);
+                
                 free(manager->uploader);
                 manager->uploader = NULL;
             }
@@ -166,17 +178,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
 void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    
-    eARUTILS_ERROR utilsError = ARUTILS_OK;
-    eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
-    ARDATATRANSFER_Manager_t* dataTransferManager;
-
+ 
     ARUPDATER_Manager_t *manager = NULL;
-    char *sourceFilePath;
-    char *destFilePath;
-    char *device;
-    ARSAL_Sem_t uploadSem;
-    
     if (managerArg != NULL)
     {
         manager = (ARUPDATER_Manager_t*)managerArg;
@@ -185,6 +188,17 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
+    
+    if (manager != NULL)
+    {
+        manager->uploader->isRunning = 1;
+    }
+    
+    eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
+
+    char *sourceFilePath;
+    char *destFilePath;
+    char *device;
     
     uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
     device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
@@ -201,25 +215,35 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     strcat(sourceFilePath, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
     strcat(sourceFilePath, ARUPDATER_MANAGER_PLF_FILENAME);
     
-    // create the data transfer manager
+    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+    // create a new uploader
     if (ARUPDATER_OK == error)
     {
-        dataTransferManager = ARDATATRANSFER_Manager_New(&dataTransferError);
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, manager->uploader->completionCallback, manager->uploader->completionArg, ARDATATRANSFER_UPLOADER_RESUME_FALSE);
         if (ARDATATRANSFER_OK != dataTransferError)
         {
             error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
         }
     }
-
+    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
     
-    // create a new uploader
+    if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
+    {
+        manager->uploader->isUploadThreadRunning = 1;
+        ARDATATRANSFER_Uploader_ThreadRun(manager->uploader->dataTransferManager);
+        manager->uploader->isUploadThreadRunning = 0;
+    }
+    
+    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
     if (ARUPDATER_OK == error)
     {
-        dataTransferError = ARDATATRANSFER_Uploader_New(dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, manager->uploader->completionCallback, manager->uploader->completionArg, ARDATATRANSFER_UPLOADER_RESUME_FALSE);
-        
-        ARDATATRANSFER_Uploader_ThreadRun(dataTransferManager);        
+        dataTransferError = ARDATATRANSFER_Uploader_Delete(manager->uploader->dataTransferManager);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
     }
-
+    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
     
     if (error != ARUPDATER_OK)
     {
@@ -229,17 +253,17 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     free(device);
     free(sourceFilePath);
     
+    if (manager != NULL)
+    {
+        manager->uploader->isRunning = 0;
+    }
+    
     return (void*)error;
 }
-
-
-
-
 
 eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    int resultSys = 0;
     
     if (manager == NULL)
     {
@@ -255,13 +279,18 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
     {
         manager->uploader->isCanceled = 1;
         
-        // TODO:
-
-        
-        if (resultSys != 0)
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (manager->uploader->isUploadThreadRunning == 1)
         {
-            error = ARUPDATER_ERROR_SYSTEM;
+            ARDATATRANSFER_Uploader_CancelThread(manager->uploader->dataTransferManager);
         }
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+
+    }
+    
+    if (error == ARUPDATER_OK)
+    {
+        manager->uploader->isRunning = 0;
     }
     
     return error;

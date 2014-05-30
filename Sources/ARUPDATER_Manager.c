@@ -33,6 +33,11 @@ ARUPDATER_Manager_t* ARUPDATER_Manager_New(eARUPDATER_ERROR *error)
     }
 
     /* Initialize to default values */
+    if (ARUPDATER_OK == err)
+    {
+        manager->downloader = NULL;
+        manager->uploader = NULL;
+    }
     
     /* delete the Manager if an error occurred */
     if (err != ARUPDATER_OK)

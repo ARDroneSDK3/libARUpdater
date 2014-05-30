@@ -15,14 +15,13 @@
 
 typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
 
-// TODO:
 /**
  * @brief Create an object to upload a plf file
  * @warning this function allocates memory
  * @post ARUPDATER_Uploader_Delete should be called
  * @param manager : pointer on the manager
  * @param[in] rootFolder : root folder
- * @param[in] ftpManager : ftp manager
+ * @param[in] ftpManager : ftp manager initialized with the correct network (wifi or ble)
  * @param[in] product : enumerator on the enum
  * @param[in] progressCallback : callback which tells the progress of the download
  * @param[in|out] progressArg : arg given to the progressCallback

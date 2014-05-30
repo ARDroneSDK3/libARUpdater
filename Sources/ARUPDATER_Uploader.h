@@ -19,9 +19,11 @@ struct ARUPDATER_Uploader_t
     
     int isRunning;
     int isCanceled;
+    int isUploadThreadRunning;
     
     ARSAL_Mutex_t uploadLock;
-    ARUTILS_Http_Connection_t *uploadConnection;
+    
+    ARDATATRANSFER_Manager_t* dataTransferManager;
     
     ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback;
     ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback;

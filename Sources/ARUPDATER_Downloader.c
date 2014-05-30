@@ -216,21 +216,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    int version;
-    int edit;
-    int ext;
-    eARUTILS_ERROR utilsError = ARUTILS_OK;
     ARUPDATER_Manager_t *manager = NULL;
-    char *device;
-    char *deviceFolder;
-    char *filePath;
-    int plfFileNotExisting = 0;
-    int dataSize;
-    char **dataPtr;
-    ARSAL_Sem_t requestSem;
-    ARSAL_Sem_t dlSem;
-    
-    
     if (managerArg != NULL)
     {
         manager = (ARUPDATER_Manager_t*)managerArg;
@@ -239,6 +225,23 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
+    
+    if (manager != NULL)
+    {
+        manager->downloader->isRunning = 1;
+    }
+    
+    int version;
+    int edit;
+    int ext;
+    eARUTILS_ERROR utilsError = ARUTILS_OK;
+    char *device;
+    char *deviceFolder;
+    char *filePath;
+    int dataSize;
+    char **dataPtr;
+    ARSAL_Sem_t requestSem;
+    ARSAL_Sem_t dlSem;
     
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
@@ -268,8 +271,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         strcat(filePath, ARUPDATER_MANAGER_PLF_FILENAME);
 
         error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
-
-        edit = 20; // TODO: delete
         
         // if the file does not exist, force to download
         if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
@@ -409,7 +410,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     manager->downloader->shouldDownloadCallback(manager->downloader->downloadArg, 1);
                 }
                 char *downloadUrl = strtok(NULL, "|");
-                char *md5 = strtok(NULL, "|");
+                //char *md5 = strtok(NULL, "|");
                 char *downloadEndUrl;
                 char *downloadServer;
                 char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(filePath) + 1);
@@ -541,6 +542,11 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     {
         ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (error));
     }
+    
+    if (manager != NULL)
+    {
+        manager->downloader->isRunning = 0;
+    }
 
     return (void*)error;
 }
@@ -586,6 +592,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
         {
             error = ARUPDATER_ERROR_SYSTEM;
         }
+    }
+    
+    if (error == ARUPDATER_OK)
+    {
+        manager->downloader->isRunning = 0;
     }
     
     return error;
