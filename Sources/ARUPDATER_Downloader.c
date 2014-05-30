@@ -512,10 +512,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 
                 free(downloadServer);
                 free(downloadedFilePath);
-                if (manager->downloader->plfDownloadCompletionCallback != NULL)
-                {
-                    manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
-                }
             }
             else
             {
@@ -527,6 +523,14 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         free(device);
         free(dataPtr);
         product++;
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
+        if (manager->downloader->plfDownloadCompletionCallback != NULL)
+        {
+            manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
+        }
     }
     
     free(plfFolder);
