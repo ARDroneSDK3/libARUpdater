@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     if(error == ARUPDATER_OK)
     {
         
-        error =  ARUPDATER_Downloader_New(manager, "./test/", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
+        error =  ARUPDATER_Downloader_New(manager, "./test", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
         
         if (error == ARUPDATER_OK)
         {
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
             
             if(ftpError == ARUTILS_OK)
             {
-                error = ARUPDATER_Uploader_New(manager, "./test/", ftpManager, ARDISCOVERY_PRODUCT_JS, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
+                error = ARUPDATER_Uploader_New(manager, "./test", ftpManager, ARDISCOVERY_PRODUCT_JS, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
             }
             else
             {

@@ -41,6 +41,8 @@
 #define ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE              "5"
 
 #define ARUPDATER_DOWNLOADER_CHUNK_SIZE                    255
+#define ARUPDATER_DOWNLOADER_MD5_TXT_SIZE                  32
+#define ARUPDATER_DOWNLOADER_MD5_HEX_SIZE                  16
 
 #define ARUPDATER_DOWNLOADER_HTTP_HEADER                   "http://"
 
@@ -87,38 +89,23 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
     /* Initialize to default values */
     if(err == ARUPDATER_OK)
     {
-        downloader->rootFolder = (char*) malloc(strlen(rootFolder) + 1);
+        int rootFolderLength = strlen(rootFolder) + 1;
+        char *slash = strrchr(rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
+        if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
+        {
+            rootFolderLength += 1;
+        }
+        downloader->rootFolder = (char*) malloc(rootFolderLength);
         strcpy(downloader->rootFolder, rootFolder);
         
-        if (downloadArg != NULL)
+        if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
         {
-            downloader->downloadArg = malloc(sizeof(downloadArg));
-            memcpy(downloader->downloadArg, downloadArg, sizeof(downloadArg));
-        }
-        else
-        {
-            downloader->downloadArg = NULL;
+            strcat(downloader->rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
         }
         
-        if (progressArg != NULL)
-        {
-            downloader->progressArg = malloc(sizeof(progressArg));
-            memcpy(downloader->progressArg, progressArg, sizeof(progressArg));
-        }
-        else
-        {
-            downloader->progressArg = NULL;
-        }
-        
-        if (completionArg != NULL)
-        {
-            downloader->completionArg = malloc(sizeof(completionArg));
-            memcpy(downloader->completionArg, completionArg, sizeof(completionArg));
-        }
-        else
-        {
-            downloader->completionArg = NULL;
-        }
+        downloader->downloadArg = downloadArg;
+        downloader->progressArg = progressArg;
+        downloader->completionArg = completionArg;
         
         downloader->shouldDownloadCallback = shouldDownloadCallback;
         downloader->plfDownloadProgressCallback = progressCallback;
@@ -188,21 +175,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
                 
                 free(manager->downloader->rootFolder);
                 
-                if (manager->downloader->downloadArg != NULL)
-                {
-                    free(manager->downloader->downloadArg);
-                }
-                
-                if (manager->downloader->progressArg != NULL)
-                {
-                    free(manager->downloader->progressArg);
-                }
-                
-                if (manager->downloader->completionArg != NULL)
-                {
-                    free(manager->downloader->completionArg);
-                }
-                
                 free(manager->downloader);
                 manager->downloader = NULL;
             }
@@ -242,6 +214,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     char **dataPtr;
     ARSAL_Sem_t requestSem;
     ARSAL_Sem_t dlSem;
+    FILE* downloadedFile;
     
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
@@ -373,7 +346,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             }
             ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
 
-            
             free(params);
         }
         
@@ -410,7 +382,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     manager->downloader->shouldDownloadCallback(manager->downloader->downloadArg, 1);
                 }
                 char *downloadUrl = strtok(NULL, "|");
-                //char *md5 = strtok(NULL, "|");
+                //char *remoteMD5 = strtok(NULL, "|");
                 char *downloadEndUrl;
                 char *downloadServer;
                 char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(filePath) + 1);
@@ -493,20 +465,41 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 // if no error, check the md5
                 if (error == ARUPDATER_OK)
                 {
-                    /*// TODO: check md5
-                    crypto_hash_t *md5=crypto_hash_md5_new();
+                    downloadedFile = fopen(downloadedFilePath, "rb");
+                    if (downloadedFile == NULL)
+                    {
+                        error = ARUPDATER_ERROR_DOWNLOADER_FILE_NOT_FOUND;
+                    }
+                }
+                
+                if (error == ARUPDATER_OK)
+                {
+                    /*crypto_hash_t *md5=crypto_hash_md5_new();
                     
                     char line[ARUPDATER_DOWNLOADER_CHUNK_SIZE];
-                    uint8_t *test = malloc(16);
-                    FILE* file = fopen(downloadedFilePath, "r");
-                    while (fread(line, ARUPDATER_DOWNLOADER_CHUNK_SIZE, 1, file) != NULL)
+                    char md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE + 1];
+                    uint8_t md5Hex[ARUPDATER_DOWNLOADER_MD5_HEX_SIZE];
+                    
+                    int size = 0;
+                    while ((size = fread(line, 1, ARUPDATER_DOWNLOADER_CHUNK_SIZE, downloadedFile)) != 0)
                     {
-                        fprintf(stderr, "%i\n", strlen(line));
-                        md5->push_data(md5, (uint8_t*)line, ARUPDATER_DOWNLOADER_CHUNK_SIZE);
+                        md5->push_data(md5, (uint8_t*)line, size);
                     }
-                    md5->get_hash(md5, test, 128/8);
+                    md5->get_hash(md5, md5Hex, ARUPDATER_DOWNLOADER_MD5_HEX_SIZE);
                     md5->destroy(md5);
-                    fprintf(stderr, "md5 = %x\n", test);*/
+                    int i = 0;
+                    for (i = 0; i < ARUPDATER_DOWNLOADER_MD5_HEX_SIZE; i++)
+                    {
+                        sprintf(&md5Txt[i * 2], "%02x", md5Hex[i]);
+                    }
+                    md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE] = '\0';
+                    
+                    if (strcmp(md5Txt, remoteMD5) != 0)
+                    {
+                        error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
+                    }*/
+                    
+                    fclose(downloadedFile);
                 }
                 
                 if (error == ARUPDATER_OK)

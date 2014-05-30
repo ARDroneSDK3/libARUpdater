@@ -64,8 +64,19 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     /* Initialize to default values */
     if(err == ARUPDATER_OK)
     {
-        uploader->rootFolder = (char*) malloc(strlen(rootFolder) + 1);
+        int rootFolderLength = strlen(rootFolder) + 1;
+        char *slash = strrchr(rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
+        if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
+        {
+            rootFolderLength += 1;
+        }
+        uploader->rootFolder = (char*) malloc(rootFolderLength);
         strcpy(uploader->rootFolder, rootFolder);
+        
+        if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
+        {
+            strcat(uploader->rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+        }
         
         uploader->product = product;
         uploader->ftpManager = ftpManager;
@@ -74,25 +85,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         uploader->isCanceled = 0;
         uploader->isUploadThreadRunning = 0;
                 
-        if (progressArg != NULL)
-        {
-            uploader->progressArg = malloc(sizeof(progressArg));
-            memcpy(uploader->progressArg, progressArg, sizeof(progressArg));
-        }
-        else
-        {
-            uploader->progressArg = NULL;
-        }
-        
-        if (completionArg != NULL)
-        {
-            uploader->completionArg = malloc(sizeof(completionArg));
-            memcpy(uploader->completionArg, completionArg, sizeof(completionArg));
-        }
-        else
-        {
-            uploader->completionArg = NULL;
-        }
+        uploader->progressArg = progressArg;
+        uploader->completionArg = completionArg;
         
         uploader->progressCallback = progressCallback;
         uploader->completionCallback = completionCallback;
@@ -153,16 +147,6 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
             {
                 ARSAL_Mutex_Destroy(&manager->uploader->uploadLock);
                 free(manager->uploader->rootFolder);
-                
-                if (manager->uploader->progressArg != NULL)
-                {
-                    free(manager->uploader->progressArg);
-                }
-
-                if (manager->uploader->completionArg)
-                {
-                    free(manager->uploader->completionArg);
-                }
                 
                 ARDATATRANSFER_Manager_Delete(&manager->uploader->dataTransferManager);
                 

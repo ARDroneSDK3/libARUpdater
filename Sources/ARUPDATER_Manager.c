@@ -100,8 +100,19 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         char *device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
         
-        char *sourceFilePath = malloc(strlen(rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1);
+        int rootFolderLength = strlen(rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1;
+        char *slash = strrchr(rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
+        if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
+        {
+            rootFolderLength += 1;
+        }
+        char *sourceFilePath = (char*) malloc(rootFolderLength);
         strcpy(sourceFilePath, rootFolder);
+        
+        if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
+        {
+            strcat(sourceFilePath, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+        }
         strcat(sourceFilePath, ARUPDATER_MANAGER_PLF_FOLDER);
         strcat(sourceFilePath, device);
         strcat(sourceFilePath, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
