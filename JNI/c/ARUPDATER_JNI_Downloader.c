@@ -31,6 +31,30 @@ jmethodID methodId_DownloaderListener_onPlfDownloadProgress = NULL;
 jmethodID methodId_DownloaderListener_onPlfDownloadComplete = NULL;
 jmethodID methodId_DownloaderListener_downloadPlf = NULL;
 
+JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeStaticInit(JNIEnv *env, jclass jClass)
+{
+    jboolean jret = JNI_FALSE;
+    int error = JNI_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+    if (env == NULL)
+    {
+        error = JNI_FAILED;
+    }
+
+    if (error == JNI_OK)
+    {
+        error = ARUPDATER_JNI_Downloader_NewListenersJNI(env);
+    }
+
+    if (error == JNI_OK)
+    {
+        jret = JNI_TRUE;
+    }
+
+    return jret;
+}
 
 JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jobject jDownloadListener, jobject jDownloadArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
 {
