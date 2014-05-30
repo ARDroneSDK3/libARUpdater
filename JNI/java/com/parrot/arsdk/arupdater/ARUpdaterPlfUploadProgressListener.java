@@ -4,10 +4,10 @@ package com.parrot.arsdk.arupdater;
 public interface ARUpdaterPlfUploadProgressListener
 {
 	/**
-     * Give the PLF download progress
+     * Give the PLF upload progress
      * @param arg Object Listener arg
      * @param progress the progress in percent
      * @return void
      */
-	void onPlfDownloadProgress(Object arg, int progress);
+	void onPlfUploadProgress(Object arg, int progress);
 }

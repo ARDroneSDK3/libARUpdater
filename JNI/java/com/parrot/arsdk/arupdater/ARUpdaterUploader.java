@@ -22,7 +22,7 @@ public class ARUpdaterUploader
     private native int nativeCancelThread (long manager);
 
     private long nativeManager = 0;
-    private Runnable downloaderRunnable = null;
+    private Runnable uploaderRunnable = null;
     private boolean isInit = false;
 
     /*  Static Block */
@@ -34,7 +34,7 @@ public class ARUpdaterUploader
     protected ARUpdaterUploader(long _nativeManager)
     {
     	this.nativeManager = _nativeManager;
-    	this.downloaderRunnable = new Runnable() {
+    	this.uploaderRunnable = new Runnable() {
     		public void run() {
     			nativeThreadRun(nativeManager);
     		}
@@ -45,8 +45,8 @@ public class ARUpdaterUploader
 	/**
      * Creates the ARUpdater Uploader
      * @param rootFolder The root folder
-     * @param shouldUploadPlfListener The available download listener
-     * @param downloadArgs The available download listener arg
+     * @param utilsManager The utils manager initialized with the correct network (wifi or ble)
+     * @param product see {@link ARDISCOVERY_PRODUCT_ENUM}
      * @param plfUploadProgressListener The available progress listener
      * @param progressArgs The available progress listener arg
      * @param completionArgs The available completion listener
