@@ -1,7 +1,7 @@
 
 package com.parrot.arsdk.arupdater;
 
-public interface ARUpdaterDownloaderShouldDownloadPlfListener
+public interface ARUpdaterShouldDownloadPlfListener
 {
 	/**
      * Download the plf

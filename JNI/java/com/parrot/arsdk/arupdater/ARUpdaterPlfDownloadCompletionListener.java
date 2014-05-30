@@ -1,7 +1,7 @@
 
 package com.parrot.arsdk.arupdater;
 
-public interface ARUpdaterDownloaderPlfDownloadCompletionListener
+public interface ARUpdaterPlfDownloadCompletionListener
 {
 	/**
      * Called when the plf download ends

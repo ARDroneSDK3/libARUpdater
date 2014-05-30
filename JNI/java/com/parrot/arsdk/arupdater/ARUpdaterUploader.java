@@ -3,18 +3,20 @@ package com.parrot.arsdk.arupdater;
 
 import java.lang.Runnable;
 import com.parrot.arsdk.arsal.ARSALPrint;
+import com.parrot.arsdk.ardiscovery.ARDISCOVERY_PRODUCT_ENUM;
+import com.parrot.arsdk.arutils.ARUtilsManager;
 
 
-public class ARUpdaterDownloader
+public class ARUpdaterUploader
 {
 
-	private static final String TAG = "ARUpdaterDownloader";
+	private static final String TAG = "ARUpdaterUploader";
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
-    	ARUpdaterPlfDownloadProgressListener plfDownloadProgressListener, Object progressArgs, 
-    	ARUpdaterPlfDownloadCompletionListener plfDownloadCompletionListener, Object completionArgs);
+    private native int nativeNew(long manager, String rootFolder, long utilsManager, ARDISCOVERY_PRODUCT_ENUM product, 
+    	ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
+    	ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
     private native void nativeThreadRun (long manager);
     private native int nativeCancelThread (long manager);
@@ -29,7 +31,7 @@ public class ARUpdaterDownloader
         nativeStaticInit();
     }  
 
-    protected ARUpdaterDownloader(long _nativeManager)
+    protected ARUpdaterUploader(long _nativeManager)
     {
     	this.nativeManager = _nativeManager;
     	this.downloaderRunnable = new Runnable() {
@@ -41,22 +43,22 @@ public class ARUpdaterDownloader
 
 
 	/**
-     * Creates the ARUpdater Downloader
+     * Creates the ARUpdater Uploader
      * @param rootFolder The root folder
-     * @param shouldDownloadPlfListener The available download listener
+     * @param shouldUploadPlfListener The available download listener
      * @param downloadArgs The available download listener arg
-     * @param plfDownloadProgressListener The available progress listener
+     * @param plfUploadProgressListener The available progress listener
      * @param progressArgs The available progress listener arg
      * @param completionArgs The available completion listener
      * @param progressArgs The available completion listener arg
      * @return void
      * @throws ARUpdaterException if error
      */
-    public void createUpdaterDownloader(String rootFolder, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
-    	ARUpdaterPlfDownloadProgressListener plfDownloadProgressListener, Object progressArgs, 
-    	ARUpdaterPlfDownloadCompletionListener plfDownloadCompletionListener, Object completionArgs) throws ARUpdaterException
+    public void createUpdaterUploader(String rootFolder, ARUtilsManager utilsManager, ARDISCOVERY_PRODUCT_ENUM product, 
+        ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
+        ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
-    	int result = nativeNew(nativeManager, rootFolder, shouldDownloadPlfListener, downloadArgs, plfDownloadProgressListener, progressArgs, plfDownloadCompletionListener, completionArgs);
+    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), product, plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 
@@ -71,7 +73,7 @@ public class ARUpdaterDownloader
     }
 
 	/**
-     * Deletes the ARUpdater Downloader
+     * Deletes the ARUpdater Uploader
      * @return ARUPDATER_OK if success, else an {@link ARUPDATER_ERROR_ENUM} error code
      */
     public ARUPDATER_ERROR_ENUM dispose()

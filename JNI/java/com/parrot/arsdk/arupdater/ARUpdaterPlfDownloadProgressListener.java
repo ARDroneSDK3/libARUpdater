@@ -1,7 +1,7 @@
 
 package com.parrot.arsdk.arupdater;
 
-public interface ARUpdaterDownloaderPlfDownloadProgressListener
+public interface ARUpdaterPlfDownloadProgressListener
 {
 	/**
      * Give the PLF download progress
