@@ -39,6 +39,7 @@ typedef void (*ARUPDATER_Downloader_PlfDownloadCompletionCallback_t) (void* arg,
 /**
  * @brief Create an object to download all plf files
  * @warning this function allocates memory
+ * @pre rootFolder should already exist
  * @post ARUPDATER_Downloader_Delete should be called
  * @param manager : pointer on the manager
  * @param[in] rootFolder : root folder

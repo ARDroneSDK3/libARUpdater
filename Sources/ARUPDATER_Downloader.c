@@ -243,7 +243,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
     strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
-    
+
     int product = 0;
     while ((error == ARUTILS_OK) && (product < ARDISCOVERY_PRODUCT_MAX) && (manager->downloader->isCanceled == 0))
     {
@@ -252,7 +252,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
-        
+
         dataPtr = malloc(sizeof(char*));
 
         
@@ -261,7 +261,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         strcpy(deviceFolder, plfFolder);
         strcat(deviceFolder, device);
         strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
-        
+
         // file path = deviceFolder + plfFilename + \0
         filePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1);
         strcpy(filePath, deviceFolder);
@@ -347,8 +347,8 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             strncat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR, strlen(ARUPDATER_DOWNLOADER_VERSION_SEPARATOR));
             sprintf(buffer,"%i",ext);
             strncat(params, buffer, strlen(buffer));
-            
             utilsError = ARUTILS_Http_Request(manager->downloader->requestConnection, ARUPDATER_DOWNLOADER_PHP_URL, params, dataPtr, &dataSize);
+            
             if (utilsError != ARUTILS_OK)
             {
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
@@ -366,14 +366,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             
             if (error == ARUPDATER_OK)
             {
-                
                 ARUTILS_Http_Connection_Delete(&manager->downloader->requestConnection);
                 manager->downloader->requestConnection = NULL;
                 ARSAL_Sem_Destroy(&requestSem);
             }
             ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
 
-            
             
             free(params);
         }
@@ -419,13 +417,13 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 strcpy(downloadedFilePath, deviceFolder);
                 strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
                 strcat(downloadedFilePath, ARUPDATER_MANAGER_PLF_FILENAME);
-                
+
                 // explode the download url into server and endUrl
                 if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
                 {
                     error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
                 }
-                
+
                 // construct the url
                 if (error == ARUPDATER_OK)
                 {
@@ -436,7 +434,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     int serverLength = strlen(urlWithoutHttpHeader) - strlen(downloadEndUrl);
                     downloadServer = malloc(serverLength + 1);
                     strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
-                    
+                    downloadServer[serverLength] = '\0';
                 }
                 
                 ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
@@ -520,7 +518,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 
                 free(downloadServer);
                 free(downloadedFilePath);
-                
                 if (manager->downloader->plfDownloadCompletionCallback != NULL)
                 {
                     manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
@@ -531,7 +528,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
             }
         }
-    
         free(deviceFolder);
         free(filePath);
         free(device);

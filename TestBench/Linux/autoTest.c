@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
             
             if(ftpError == ARUTILS_OK)
             {
-                ftpError = ARUTILS_Manager_InitWifiFtp(ftpManager, "172.20.5.48", 21, "d.bertrand", "Parrot0104");
+                ftpError = ARUTILS_Manager_InitWifiFtp(ftpManager, "172.20.5.48", 21, "", "");
             }
             
             if(ftpError == ARUTILS_OK)
@@ -129,24 +129,6 @@ int main(int argc, char *argv[])
         {
             error = (eARUPDATER_ERROR)ARUPDATER_Uploader_ThreadRun(manager);
         }
-        /*error = ARUPDATER_Manager_PrepareCheckLocaleVersion(managerPtr, "0900", "delos_lucie_updater_payload.plf", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
-        
-        if (error == ARUPDATER_OK)
-        {
-            // launch the thread
-            error = ARUPDATER_Manager_CheckLocaleVersionThreadRun(managerPtr);
-        }
-        
-        if (error == ARUPDATER_OK)
-        {
-            error = ARUPDATER_Manager_PrepareSendToDrone(managerPtr, "delos_lucie_updater_payload.plf", test_http_progress_callback, "send progress : ", test_ftp_upload_callback, NULL);
-        }
-        
-        if (error == ARUPDATER_OK)
-        {
-            // launch the thread
-            error = ARUPDATER_Manager_SendToDroneThreadRun(managerPtr);
-        }*/
         
         ARUPDATER_Manager_Delete(&manager);
     }
