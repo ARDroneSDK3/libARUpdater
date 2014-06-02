@@ -19,7 +19,7 @@
 #include <libARSAL/ARSAL_Sem.h>
 #include <libARSAL/ARSAL_Print.h>
 #include <libARUtils/ARUTILS_Error.h>
- #include <libARUtils/ARUTILS_Manager.h>
+#include <libARUtils/ARUTILS_Manager.h>
 
 #include "libARUpdater/ARUPDATER_Error.h"
 #include "libARUpdater/ARUPDATER_Manager.h"
@@ -107,7 +107,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeN
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Uploader_New(nativeManager, rootFolder, nativeFtpManager, (eARDISCOVERY_PRODUCT)jProduct, ARUPDATER_JNI_Uploader_ProgressCallback, callbacks, ARUPDATER_JNI_Uploader_CompletionCallback, callbacks);
+        result = ARUPDATER_Uploader_New(nativeManager, rootFolder, nativeFtpManager, ARDISCOVERY_getProductFromProductID(jProduct), ARUPDATER_JNI_Uploader_ProgressCallback, callbacks, ARUPDATER_JNI_Uploader_CompletionCallback, callbacks);
     }
 
     if ((result != ARUPDATER_OK) && (callbacks != NULL))
@@ -222,7 +222,7 @@ int ARUPDATER_JNI_Uploader_NewListenersJNI(JNIEnv *env)
 
         if (error == JNI_OK)
         {
-            methodId_UploaderListener_onPlfUploadComplete = (*env)->GetMethodID(env, classUploaderCompletionListener, "onPlfUploadComplete", "(Ljava/lang/Object;Lcom/parrot/arsdk/arupdater/ARUPDATER_ERROR_ENUM;)V");
+            methodId_UploaderListener_onPlfUploadComplete = (*env)->GetMethodID(env, classUploaderCompletionListener, "onPlfUploadComplete", "(Ljava/lang/Object;Lcom/parrot/arsdk/ardatatransfer/ARDATATRANSFER_ERROR_ENUM;)V");
 
             if (methodId_UploaderListener_onPlfUploadComplete == NULL)
             {
@@ -290,7 +290,7 @@ void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, uint8_t percent)
  * @retval void
  * @see ARUPDATER_JNI_Uploader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARUPDATER_ERROR nativeError)
+void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR nativeError)
 {
     ARUPDATER_JNI_UploaderCallbacks_t *callbacks = (ARUPDATER_JNI_UploaderCallbacks_t*)arg;
 
@@ -324,8 +324,7 @@ void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARUPDATER_ERROR nativ
 
                 if (error == JNI_OK)
                 {
-                    jError = ARUPDATER_JNI_Manager_NewERROR_ENUM(env, nativeError);
-
+                    jError = ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM(env, nativeError);
                     if (jError == NULL)
                     {
                         error = JNI_FAILED;

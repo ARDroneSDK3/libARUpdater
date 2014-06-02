@@ -39,6 +39,9 @@ jmethodID methodId_UPDATER_Exception_Init = NULL;
 jclass classUPDATER_ERROR_ENUM = NULL;
 jmethodID methodId_UPDATER_ERROR_ENUM_getFromValue = NULL;
 
+jclass classDTERROR_ENUM = NULL;
+jmethodID methodId_DTERROR_ENUM_getFromValue = NULL;
+
 /*****************************************
  *
  *             Private implementation:
@@ -139,7 +142,7 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeDe
         {
             ARUPDATER_JNI_Manager_FreeARUpdaterExceptionJNI(env);
             ARUPDATER_JNI_Manager_FreeERROR_ENUM_JNI(env);
-
+            ARUPDATER_JNI_Manager_FreeDATATRANSFER_ERROR_ENUM_JNI(env);
             ARUPDATER_JNI_Downloader_FreeListenersJNI(env);
         }
     }
@@ -364,6 +367,106 @@ jobject ARUPDATER_JNI_Manager_NewERROR_ENUM(JNIEnv *env, eARUPDATER_ERROR native
         jError = nativeError;
 
         jERROR_ENUM = (*env)->CallStaticObjectMethod(env, classUPDATER_ERROR_ENUM, methodId_UPDATER_ERROR_ENUM_getFromValue, jError);
+    }
+
+    return jERROR_ENUM;
+}
+
+
+/*************************************************
+    ARDATATRANSFER enum generator
+**************************************************/
+
+int ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env)
+{
+    jclass locClassDTERROR_ENUM = NULL;
+    int error = JNI_OK;
+
+    if (classDTERROR_ENUM == NULL)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+
+        if (env == NULL)
+        {
+            error = JNI_FAILED;
+        }
+
+        if (error == JNI_OK)
+        {
+            locClassDTERROR_ENUM = (*env)->FindClass(env, "com/parrot/arsdk/ardatatransfer/ARDATATRANSFER_ERROR_ENUM");
+
+            if (locClassDTERROR_ENUM == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "ARDATATRANSFER_ERROR_ENUM class not found");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            classDTERROR_ENUM = (*env)->NewGlobalRef(env, locClassDTERROR_ENUM);
+
+            if (classDTERROR_ENUM == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "ARDATATRANSFER_ERROR_ENUM global ref failed");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            methodId_DTERROR_ENUM_getFromValue = (*env)->GetStaticMethodID(env, classDTERROR_ENUM, "getFromValue", "(I)Lcom/parrot/arsdk/ardatatransfer/ARDATATRANSFER_ERROR_ENUM;");
+
+            if (methodId_DTERROR_ENUM_getFromValue == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "getFromValue method not found");
+                error = JNI_FAILED;
+            }
+        }
+    }
+
+    return error;
+}
+
+void ARUPDATER_JNI_Manager_FreeDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env)
+{
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+
+    if (env != NULL)
+    {
+        if (classDTERROR_ENUM != NULL)
+        {
+            (*env)->DeleteGlobalRef(env, classDTERROR_ENUM);
+            classDTERROR_ENUM = NULL;
+        }
+
+        methodId_DTERROR_ENUM_getFromValue = NULL;
+    }
+}
+
+jobject ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM(JNIEnv *env, eARDATATRANSFER_ERROR nativeError)
+{
+    jobject jERROR_ENUM = NULL;
+    jint jError;
+    int error = JNI_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%d", nativeError);
+
+    if (env == NULL)
+    {
+       error = JNI_FAILED;
+    }
+
+    if (error == JNI_OK)
+    {
+        error = ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM_JNI(env);
+    }
+
+    if (error == JNI_OK)
+    {
+        jError = nativeError;
+
+        jERROR_ENUM = (*env)->CallStaticObjectMethod(env, classDTERROR_ENUM, methodId_DTERROR_ENUM_getFromValue, jError);
     }
 
     return jERROR_ENUM;

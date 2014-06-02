@@ -50,12 +50,14 @@ libarupdater_autoTest_SOURCES                               =   ../TestBench/Lin
 if DEBUG_MODE
 libarupdater_autoTest_LDADD                                 =   libarupdater_dbg.la \
                                                                 -larsal_dbg         \
+                                                                -lardiscovery_dbg   \
                                                                 -larutils_dbg       \
                                                                 -lardatatransfer_dbg\
                                                                 -lcurl
 else
 libarupdater_autoTest_LDADD                                 =   libarupdater.la     \
                                                                 -larsal             \
+                                                                -lardiscovery       \
                                                                 -larutils           \
                                                                 -lardatatransfer    \
                                                                 -lcurl

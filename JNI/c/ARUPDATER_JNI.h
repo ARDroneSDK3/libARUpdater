@@ -211,7 +211,7 @@ void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, uint8_t percent);
  * @retval void
  * @see ARUPDATER_JNI_Uploader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARUPDATER_ERROR nativeError);
+void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR nativeError);
 
 
 /**
@@ -225,6 +225,34 @@ void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARUPDATER_ERROR nativ
 void ARUPDATER_JNI_Uploader_FreeUploaderCallbacks(JNIEnv *env, ARUPDATER_JNI_UploaderCallbacks_t **callbacks);
 
 
+/*************************************************
+    ARDATATRANSFER enum generator
+**************************************************/
+
+/**
+ * @brief Create a new ARUPDATER_ERROR_ENUM
+ * @param env The java env
+ * @param nativeError The error
+ * @retval the new ARUPDATER_ERROR_ENUM
+ * @see ARUPDATER_JNI_Manager_NewERROR_ENUM_JNI
+ */
+jobject ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM(JNIEnv *env, eARDATATRANSFER_ERROR nativeError);
+
+/**
+ * @brief Get the ARUPDATER_ERROR_ENUM JNI class
+ * @param env The java env
+ * @retval JNI_TRUE if Success, else JNI_FALSE
+ * @see ARUPDATER_JNI_Manager_FreeERROR_ENUM_JNI
+ */
+int ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env);
+
+/**
+ * @brief Free the ARUPDATER_ERROR_ENUM JNI class
+ * @param env The java env
+ * @retval void
+ * @see ARUPDATER_JNI_Manager_NewERROR_ENUM_JNI
+ */
+void ARUPDATER_JNI_Manager_FreeDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env);
 
 #endif /* _ARUPDATER_JNI_H_ */
 
