@@ -1,0 +1,18 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="${packageName}.${activityClass}" >
+    
+    <Button android:id="@+id/start_upload_by_wifi_test_button" 
+        android:layout_width="wrap_content"
+    	android:layout_height="wrap_content"
+    	android:text="Start Wifi Uploading Test"/>
+    
+    <Button android:id="@+id/start_download_by_wifi_test_button" 
+        android:layout_width="wrap_content"
+    	android:layout_height="wrap_content"
+    	android:text="Start Wifi Downloading Test"
+    	android:layout_below="@id/start_upload_by_wifi_test_button"/>
+
+</RelativeLayout>
