@@ -125,5 +125,17 @@ public class ARUpdaterDownloader
     	return error;
     }
 
+    public Runnable getDownloaderRunnable()
+    {
+        Runnable runnable = null;
+
+        if (isInit == true)
+        {
+            runnable = this.downloaderRunnable;
+        }
+
+        return runnable;
+    }
+
 
 }

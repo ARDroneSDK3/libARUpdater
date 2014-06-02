@@ -128,4 +128,17 @@ public class ARUpdaterUploader
     }
 
 
+    public Runnable getUploaderRunnable()
+    {
+        Runnable runnable = null;
+
+        if (isInit == true)
+        {
+            runnable = this.uploaderRunnable;
+        }
+
+        return runnable;
+    }
+
+
 }
