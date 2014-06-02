@@ -22,8 +22,9 @@
  *****************************************/
 #define ARUPDATER_DOWNLOADER_TAG   "ARUPDATER_Downloader"
 
-#define ARUPDATER_DOWNLOADER_SERVER_URL                    "172.20.5.48"
-#define ARUPDATER_DOWNLOADER_PHP_URL                       "~d.bertrand/update.php"
+#define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
+#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
+#define ARUPDATER_DOWNLOADER_PHP_URL                       "/update.php"
 #define ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH              255
 #define ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT     10
 #define ARUPDATER_DOWNLOADER_PRODUCT_PARAM                 "?product="
@@ -210,7 +211,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     char *device;
     char *deviceFolder;
     char *filePath;
-    int dataSize;
+    uint32_t dataSize;
     char **dataPtr;
     ARSAL_Sem_t requestSem;
     ARSAL_Sem_t dlSem;
@@ -274,6 +275,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 fclose(dir);
             }
         }
+        edit = 20; // TODO: delete
         
         // init the request semaphore
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
@@ -321,8 +323,14 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             strncat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR, strlen(ARUPDATER_DOWNLOADER_VERSION_SEPARATOR));
             sprintf(buffer,"%i",ext);
             strncat(params, buffer, strlen(buffer));
-            utilsError = ARUTILS_Http_Request(manager->downloader->requestConnection, ARUPDATER_DOWNLOADER_PHP_URL, params, dataPtr, &dataSize);
             
+            char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
+            strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
+            strcat(endUrl, device);
+            strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_URL);
+            strcat(endUrl, params);
+
+            utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)dataPtr, &dataSize, NULL, NULL);
             if (utilsError != ARUTILS_OK)
             {
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
@@ -346,16 +354,20 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             }
             ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
 
+            free(endUrl);
             free(params);
         }
         
         // check if data fetch from request is valid
         if (error == ARUPDATER_OK)
         {
-            if ((*dataPtr != NULL) &&
-                (strlen(*dataPtr) != dataSize))
+            if (*dataPtr != NULL)
             {
-                error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
+                (*dataPtr)[dataSize] = '\0';
+                if (strlen(*dataPtr) != dataSize)
+                {
+                    error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
+                }
             }
         }
         

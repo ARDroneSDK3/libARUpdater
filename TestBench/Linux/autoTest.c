@@ -49,8 +49,14 @@
 void test_http_progress_callback(void* arg, uint8_t percent)
 {
     char *message = (char *)arg;
-    
-    //printf("%s %d%%\n", message ? message : "null", percent);
+    if ((percent == 5) ||
+        (percent == 20) ||
+        (percent == 50) ||
+        (percent == 80) ||
+        (percent == 99))
+    {
+        printf("%s %d%%\n", message ? message : "null", percent);
+    }
 }
 
 void test_http_should_download_callback(void* arg, int shouldDownload)
