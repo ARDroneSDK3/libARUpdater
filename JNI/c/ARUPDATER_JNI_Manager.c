@@ -148,6 +148,30 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeDe
     }
 }
 
+JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativePlfVersionIsUpToDate(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jint jProduct, jint jVersion, jint jEdition, jint jExtension)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    const char *rootFolder = (*env)->GetStringUTFChars(env, jRootFolder, 0);
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s %d %d %d %d", rootFolder, jProduct, jVersion, jEdition, jExtension);
+
+    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, rootFolder, (eARDISCOVERY_PRODUCT)jProduct, jVersion, jEdition, jExtension, &result);
+
+    if (rootFolder != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jRootFolder, rootFolder);
+    }
+
+    if (result != ARUPDATER_OK)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_WARNING, ARUPDATER_JNI_MANAGER_TAG, "error while trying to call ARUPDATER_Manager_PlfVersionIsUpToDate: [%d]", result);
+        ARUPDATER_JNI_Manager_ThrowARUpdaterException(env, result);
+    }
+
+    return isUpToDate;
+}
+
 /*****************************************
  *
  *             Private implementation:
