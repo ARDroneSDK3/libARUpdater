@@ -181,7 +181,7 @@ public class MainActivity extends Activity {
 			ARUTILS_ERROR_ENUM utilsError = ARUTILS_ERROR_ENUM.ARUTILS_OK;
 			try {
 				utilsManager = new ARUtilsManager();
-				utilsError = utilsManager.initWifiFtp("172.20.5.36", 21, "", "");
+				utilsError = utilsManager.initWifiFtp("172.20.5.36", 21, "anonymous", "");
 			} catch (ARUtilsException e1) {
 				Log.w(TAG, "Failed to init ARUtilsManager");
 				e1.printStackTrace();
