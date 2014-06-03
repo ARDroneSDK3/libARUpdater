@@ -58,13 +58,13 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
 {
     ARUPDATER_Downloader_t *downloader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
-    
+
     // Check parameters
     if ((manager == NULL) || (rootFolder == NULL))
     {
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
+
     if(err == ARUPDATER_OK)
     {
         /* Create the downloader */
@@ -74,7 +74,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
             err = ARUPDATER_ERROR_ALLOC;
         }
     }
-    
+
     if (err == ARUPDATER_OK)
     {
         if (manager->downloader != NULL)
@@ -86,7 +86,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
             manager->downloader = downloader;
         }
     }
-    
+
     /* Initialize to default values */
     if(err == ARUPDATER_OK)
     {
@@ -98,41 +98,41 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         }
         downloader->rootFolder = (char*) malloc(rootFolderLength);
         strcpy(downloader->rootFolder, rootFolder);
-        
+
         if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
         {
             strcat(downloader->rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
         }
-        
+
         downloader->downloadArg = downloadArg;
         downloader->progressArg = progressArg;
         downloader->completionArg = completionArg;
-        
+
         downloader->shouldDownloadCallback = shouldDownloadCallback;
         downloader->plfDownloadProgressCallback = progressCallback;
         downloader->plfDownloadCompletionCallback = completionCallback;
-        
+
         downloader->isRunning = 0;
         downloader->isCanceled = 0;
-        
+
         downloader->requestConnection = NULL;
         downloader->downloadConnection = NULL;
     }
-    
+
     if (err == ARUPDATER_OK)
     {
         int resultSys = ARSAL_Mutex_Init(&manager->downloader->requestLock);
-        
+
         if (resultSys != 0)
         {
             err = ARUPDATER_ERROR_SYSTEM;
         }
     }
-    
+
     if (err == ARUPDATER_OK)
     {
         int resultSys = ARSAL_Mutex_Init(&manager->downloader->downloadLock);
-        
+
         if (resultSys != 0)
         {
             err = ARUPDATER_ERROR_SYSTEM;
@@ -145,7 +145,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (err));
         ARUPDATER_Downloader_Delete (manager);
     }
-    
+
     return err;
 }
 
@@ -173,22 +173,22 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
             {
                 ARSAL_Mutex_Destroy(&manager->downloader->requestLock);
                 ARSAL_Mutex_Destroy(&manager->downloader->downloadLock);
-                
+
                 free(manager->downloader->rootFolder);
-                
+
                 free(manager->downloader);
                 manager->downloader = NULL;
             }
         }
     }
-    
+
     return error;
 }
 
 void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    
+
     ARUPDATER_Manager_t *manager = NULL;
     if (managerArg != NULL)
     {
@@ -198,12 +198,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
+
     if (manager != NULL)
     {
         manager->downloader->isRunning = 1;
     }
-    
+
     int version;
     int edit;
     int ext;
@@ -216,23 +216,23 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     ARSAL_Sem_t requestSem;
     ARSAL_Sem_t dlSem;
     FILE* downloadedFile;
-    
+
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
     strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
 
     int product = 0;
-    while ((error == ARUTILS_OK) && (product < ARDISCOVERY_PRODUCT_MAX) && (manager->downloader->isCanceled == 0))
+    while ((error == ARUPDATER_OK) && (product < ARDISCOVERY_PRODUCT_MAX) && (manager->downloader->isCanceled == 0))
     {
         // for each product, check if update is needed
         uint16_t productId = ARDISCOVERY_getProductID(product);
-        
+
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
 
         dataPtr = malloc(sizeof(char*));
 
-        
+
         // read the header of the plf file
         deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
         strcpy(deviceFolder, plfFolder);
@@ -245,7 +245,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         strcat(filePath, ARUPDATER_MANAGER_PLF_FILENAME);
 
         error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
-        
+
         // if the file does not exist, force to download
         if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
         {
@@ -253,7 +253,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             edit = 0;
             ext = 0;
             error = ARUPDATER_OK;
-            
+
             // also check that the directory exists
             FILE *dir = fopen(plfFolder, "r");
             if (dir == NULL)
@@ -264,7 +264,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             {
                 fclose(dir);
             }
-            
+
             dir = fopen(deviceFolder, "r");
             if (dir == NULL)
             {
@@ -276,7 +276,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             }
         }
         edit = 20; // TODO: delete
-        
+
         // init the request semaphore
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
         if (error == ARUPDATER_OK)
@@ -287,7 +287,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 error = ARUPDATER_ERROR_SYSTEM;
             }
         }
-        
+
         // init the connection
         if (error == ARUPDATER_OK)
         {
@@ -310,10 +310,10 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
             strncpy(params, ARUPDATER_DOWNLOADER_PRODUCT_PARAM, strlen(ARUPDATER_DOWNLOADER_PRODUCT_PARAM));
             strncat(params, device, strlen(device));
-            
+
             strncat(params, ARUPDATER_DOWNLOADER_SERIAL_PARAM, strlen(ARUPDATER_DOWNLOADER_SERIAL_PARAM));
             strncat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE, strlen(ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE));
-            
+
             strncat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM, strlen(ARUPDATER_DOWNLOADER_VERSION_PARAM));
             sprintf(buffer,"%i",version);
             strncat(params, buffer, strlen(buffer));
@@ -323,7 +323,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             strncat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR, strlen(ARUPDATER_DOWNLOADER_VERSION_SEPARATOR));
             sprintf(buffer,"%i",ext);
             strncat(params, buffer, strlen(buffer));
-            
+
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
             strcat(endUrl, device);
@@ -335,7 +335,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             {
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
             }
-            
+
             ARSAL_Mutex_Lock(&manager->downloader->requestLock);
             if (error == ARUPDATER_OK)
             {
@@ -345,7 +345,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
                 }
             }
-            
+
             if (error == ARUPDATER_OK)
             {
                 ARUTILS_Http_Connection_Delete(&manager->downloader->requestConnection);
@@ -357,7 +357,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             free(endUrl);
             free(params);
         }
-        
+
         // check if data fetch from request is valid
         if (error == ARUPDATER_OK)
         {
@@ -370,14 +370,14 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 }
             }
         }
-        
+
         // check if plf file need to be updated
         if (error == ARUPDATER_OK)
         {
             char *data = *dataPtr;
             char *result;
             result = strtok(data, "|");
-            
+
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
                 // no need to update the plf file
@@ -414,14 +414,14 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 {
                     char *urlWithoutHttpHeader = downloadUrl + strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER);
                     const char delimiter = '/';
-                    
+
                     downloadEndUrl = strchr(urlWithoutHttpHeader, delimiter);
                     int serverLength = strlen(urlWithoutHttpHeader) - strlen(downloadEndUrl);
                     downloadServer = malloc(serverLength + 1);
                     strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
                     downloadServer[serverLength] = '\0';
                 }
-                
+
                 ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
                 // init the request semaphore
                 if (error == ARUPDATER_OK)
@@ -432,7 +432,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                         error = ARUPDATER_ERROR_SYSTEM;
                     }
                 }
-                
+
                 if (error == ARUPDATER_OK)
                 {
                     manager->downloader->downloadConnection = ARUTILS_Http_Connection_New(&dlSem, downloadServer, 80, HTTPS_PROTOCOL_FALSE, NULL, NULL, &utilsError);
@@ -445,7 +445,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     }
                 }
                 ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
-                
+
                 // download the file
                 if (error == ARUPDATER_OK)
                 {
@@ -455,7 +455,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                         error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
                     }
                 }
-                
+
                 ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
                 if (error == ARUPDATER_OK)
                 {
@@ -465,7 +465,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                         error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
                     }
                 }
-                
+
                 if (error == ARUPDATER_OK)
                 {
                     ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
@@ -473,7 +473,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     ARSAL_Sem_Destroy(&dlSem);
                 }
                 ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
-                
+
                 // if no error, check the md5
                 if (error == ARUPDATER_OK)
                 {
@@ -483,37 +483,37 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                         error = ARUPDATER_ERROR_DOWNLOADER_FILE_NOT_FOUND;
                     }
                 }
-                
+
                 if (error == ARUPDATER_OK)
                 {
                     /*crypto_hash_t *md5=crypto_hash_md5_new();
-                    
-                    char line[ARUPDATER_DOWNLOADER_CHUNK_SIZE];
-                    char md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE + 1];
-                    uint8_t md5Hex[ARUPDATER_DOWNLOADER_MD5_HEX_SIZE];
-                    
-                    int size = 0;
-                    while ((size = fread(line, 1, ARUPDATER_DOWNLOADER_CHUNK_SIZE, downloadedFile)) != 0)
-                    {
-                        md5->push_data(md5, (uint8_t*)line, size);
-                    }
-                    md5->get_hash(md5, md5Hex, ARUPDATER_DOWNLOADER_MD5_HEX_SIZE);
-                    md5->destroy(md5);
-                    int i = 0;
-                    for (i = 0; i < ARUPDATER_DOWNLOADER_MD5_HEX_SIZE; i++)
-                    {
-                        sprintf(&md5Txt[i * 2], "%02x", md5Hex[i]);
-                    }
-                    md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE] = '\0';
-                    
-                    if (strcmp(md5Txt, remoteMD5) != 0)
-                    {
-                        error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
-                    }*/
-                    
+
+                      char line[ARUPDATER_DOWNLOADER_CHUNK_SIZE];
+                      char md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE + 1];
+                      uint8_t md5Hex[ARUPDATER_DOWNLOADER_MD5_HEX_SIZE];
+
+                      int size = 0;
+                      while ((size = fread(line, 1, ARUPDATER_DOWNLOADER_CHUNK_SIZE, downloadedFile)) != 0)
+                      {
+                      md5->push_data(md5, (uint8_t*)line, size);
+                      }
+                      md5->get_hash(md5, md5Hex, ARUPDATER_DOWNLOADER_MD5_HEX_SIZE);
+                      md5->destroy(md5);
+                      int i = 0;
+                      for (i = 0; i < ARUPDATER_DOWNLOADER_MD5_HEX_SIZE; i++)
+                      {
+                      sprintf(&md5Txt[i * 2], "%02x", md5Hex[i]);
+                      }
+                      md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE] = '\0';
+
+                      if (strcmp(md5Txt, remoteMD5) != 0)
+                      {
+                      error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
+                      }*/
+
                     fclose(downloadedFile);
                 }
-                
+
                 if (error == ARUPDATER_OK)
                 {
                     if (rename(downloadedFilePath, filePath) != 0)
@@ -521,7 +521,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                         error = ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE;
                     }
                 }
-                
+
                 free(downloadServer);
                 free(downloadedFilePath);
             }
@@ -536,7 +536,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         free(dataPtr);
         product++;
     }
-    
+
     if (ARUPDATER_OK == error)
     {
         if (manager->downloader->plfDownloadCompletionCallback != NULL)
@@ -544,14 +544,14 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
         }
     }
-    
+
     free(plfFolder);
-    
+
     if (error != ARUPDATER_OK)
     {
         ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (error));
     }
-    
+
     if (manager != NULL)
     {
         manager->downloader->isRunning = 0;
@@ -564,21 +564,21 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     int resultSys = 0;
-    
+
     if (manager == NULL)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
+
     if ((error == ARUPDATER_OK) && (manager->downloader == NULL))
     {
         error = ARUPDATER_ERROR_NOT_INITIALIZED;
     }
-    
+
     if (error == ARUPDATER_OK)
     {
         manager->downloader->isCanceled = 1;
-        
+
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
         if (manager->downloader->requestConnection != NULL)
         {
@@ -587,7 +587,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
             manager->downloader->requestConnection = NULL;
         }
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
-        
+
         ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
         if (manager->downloader->downloadConnection != NULL)
         {
@@ -596,18 +596,17 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
             manager->downloader->downloadConnection = NULL;
         }
         ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
-        
+
         if (resultSys != 0)
         {
             error = ARUPDATER_ERROR_SYSTEM;
         }
     }
-    
+
     if (error == ARUPDATER_OK)
     {
         manager->downloader->isRunning = 0;
     }
-    
+
     return error;
 }
-
