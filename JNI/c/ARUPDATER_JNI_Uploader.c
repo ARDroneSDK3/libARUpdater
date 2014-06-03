@@ -107,7 +107,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeN
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Uploader_New(nativeManager, rootFolder, nativeFtpManager, ARDISCOVERY_getProductFromProductID(jProduct), ARUPDATER_JNI_Uploader_ProgressCallback, callbacks, ARUPDATER_JNI_Uploader_CompletionCallback, callbacks);
+        result = ARUPDATER_Uploader_New(nativeManager, rootFolder, nativeFtpManager, (eARDISCOVERY_PRODUCT)jProduct, ARUPDATER_JNI_Uploader_ProgressCallback, callbacks, ARUPDATER_JNI_Uploader_CompletionCallback, callbacks);
     }
 
     if ((result != ARUPDATER_OK) && (callbacks != NULL))

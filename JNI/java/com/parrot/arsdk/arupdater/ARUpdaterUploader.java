@@ -14,7 +14,7 @@ public class ARUpdaterUploader
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, long utilsManager, ARDISCOVERY_PRODUCT_ENUM product, 
+    private native int nativeNew(long manager, String rootFolder, long utilsManager, int discoveryProduct, 
     	ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
     	ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
@@ -58,7 +58,7 @@ public class ARUpdaterUploader
         ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
         ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
-    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), product, plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
+    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), product.getValue(), plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 
