@@ -492,6 +492,8 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     eARSAL_ERROR arsalError = ARSAL_MD5_Manager_Check(manager->downloader->md5Manager, downloadedFilePath, remoteMD5);
                     if(ARSAL_OK != arsalError)
                     {
+                        // delete the downloaded file if md5 don't match
+                        unlink(downloadedFilePath);
                         error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
                     }
                 }
