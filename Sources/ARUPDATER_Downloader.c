@@ -362,7 +362,9 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
 
             free(endUrl);
+            endUrl = NULL;
             free(params);
+            params = NULL;
         }
 
         // check if data fetch from request is valid
@@ -513,13 +515,16 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     }
                 }
 
-                if (filePath != NULL)
+                if (downloadServer != NULL)
                 {
-                    free(filePath);
-                    filePath = NULL;
+                    free(downloadServer);
+                    downloadServer = NULL;
                 }
-                free(downloadServer);
-                free(downloadedFilePath);
+                if (downloadedFilePath != NULL)
+                {
+                    free(downloadedFilePath);
+                    downloadedFilePath = NULL;
+                }
             }
             else
             {
@@ -529,24 +534,32 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         if (deviceFolder != NULL)
         {
             free(deviceFolder);
+            deviceFolder = NULL;
         }
         if (filePath != NULL)
         {
             free(filePath);
+            filePath = NULL;
         }
         if (device != NULL)
         {
             free(device);
+            device = NULL;
         }
         if (dataPtr != NULL)
         {
             free(dataPtr);
+            dataPtr = NULL;
         }
         
         product++;
     }
 
-    free(plfFolder);
+    if (plfFolder != NULL)
+    {
+        free(plfFolder);
+        plfFolder = NULL;
+    }
 
     if (error != ARUPDATER_OK)
     {
