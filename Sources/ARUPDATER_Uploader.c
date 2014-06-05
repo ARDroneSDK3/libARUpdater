@@ -384,7 +384,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
         {
             ARDATATRANSFER_Uploader_CancelThread(manager->uploader->dataTransferManager);
         }
-        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
 
     }
     

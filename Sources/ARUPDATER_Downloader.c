@@ -605,7 +605,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
             ARUTILS_Http_Connection_Delete(&manager->downloader->requestConnection);
             manager->downloader->requestConnection = NULL;
         }
-        ARSAL_Mutex_Lock(&manager->downloader->requestLock);
+        ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
 
         ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
         if (manager->downloader->downloadConnection != NULL)
@@ -614,7 +614,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
             ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
             manager->downloader->downloadConnection = NULL;
         }
-        ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
+        ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
         if (resultSys != 0)
         {
