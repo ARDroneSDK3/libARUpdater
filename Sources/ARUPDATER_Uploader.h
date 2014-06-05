@@ -32,6 +32,10 @@ struct ARUPDATER_Uploader_t
     void *progressArg;
     void *completionArg;
     
+    eARDATATRANSFER_ERROR uploadError;
+    
 };
+
+void ARUPDATER_Uploader_UploadCompletionCallback(void* arg, eARDATATRANSFER_ERROR error);
 
 #endif

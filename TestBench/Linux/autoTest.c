@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
         }
         
         fprintf(stderr, "Download finish, uploading now \n");
-        /*if (error == ARUPDATER_OK)
+        if (error == ARUPDATER_OK)
         {
             eARUTILS_ERROR ftpError = ARUTILS_OK;
             ARUTILS_Manager_t *ftpManager = ARUTILS_Manager_New(&ftpError);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
             
             if(ftpError == ARUTILS_OK)
             {
-                error = ARUPDATER_Uploader_New(manager, "./test", ftpManager, md5Manager, ARDISCOVERY_PRODUCT_JS, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
+                error = ARUPDATER_Uploader_New(manager, "./test", ftpManager, md5Manager, ARDISCOVERY_PRODUCT_MINIDRONE, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
             }
             else
             {
@@ -148,10 +148,10 @@ int main(int argc, char *argv[])
         if (error == ARUPDATER_OK)
         {
             error = (eARUPDATER_ERROR)ARUPDATER_Uploader_ThreadRun(manager);
-        }*/
+        }
         
         ARUPDATER_Downloader_Delete(manager);
-        //ARUPDATER_Uploader_Delete(manager);
+        ARUPDATER_Uploader_Delete(manager);
         ARUPDATER_Manager_Delete(&manager);
     }
     else if(manager != NULL)

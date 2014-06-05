@@ -87,6 +87,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         uploader->isRunning = 0;
         uploader->isCanceled = 0;
         uploader->isUploadThreadRunning = 0;
+        
+        uploader->uploadError = ARDATATRANSFER_OK;
                 
         uploader->progressArg = progressArg;
         uploader->completionArg = completionArg;
@@ -226,7 +228,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         if (ARSAL_OK == arsalError)
         {
             // get md5 in text
-            char *md5Txt = malloc(ARSAL_MD5_LENGTH * 2);
+            md5Txt = malloc(ARSAL_MD5_LENGTH * 2);
             int i = 0;
             for (i = 0; i < ARSAL_MD5_LENGTH; i++)
             {
@@ -262,6 +264,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
                 strcat(uploadedMD5, line);
             }
             fclose(md5File);
+            md5File = NULL;
             
             // md5s match, so we can resume the upload
             if (strcmp(md5Txt, uploadedMD5) == 0)
@@ -270,6 +273,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
             } // ELSE md5s don't match, so keep the default value of resumeMode (=> begin a new upload)
             
             free(uploadedMD5);
+            uploadedMD5 = NULL;
         }
     }
     
@@ -277,7 +281,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     // create a new uploader
     if (ARUPDATER_OK == error)
     {
-        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, manager->uploader->completionCallback, manager->uploader->completionArg, resumeMode);
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, ARUPDATER_Uploader_UploadCompletionCallback, manager, resumeMode);
         if (ARDATATRANSFER_OK != dataTransferError)
         {
             error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
@@ -289,7 +293,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     {
         // if the upload is a new one, store the md5 in a file
         FILE *md5File = fopen(sourceMD5FilePath, "wb");
-        if (md5File != NULL)
+        if (md5File != NULL && md5Txt != NULL)
         {
             fprintf(md5File, "%s", md5Txt);
             fclose(md5File);
@@ -303,6 +307,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     if (md5Txt != NULL)
     {
         free(md5Txt);
+        md5Txt = NULL;
     }
     
     if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
@@ -358,7 +363,21 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         manager->uploader->isRunning = 0;
     }
     
+    if (manager->uploader->completionCallback != NULL)
+    {
+        manager->uploader->completionCallback(manager->uploader->completionArg, manager->uploader->uploadError);
+    }
+    
     return (void*)error;
+}
+
+void ARUPDATER_Uploader_UploadCompletionCallback(void* arg, eARDATATRANSFER_ERROR error)
+{
+    ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t *)arg;
+    if (manager->uploader != NULL)
+    {
+        manager->uploader->uploadError = error;
+    }
 }
 
 eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
