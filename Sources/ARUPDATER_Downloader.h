@@ -24,6 +24,8 @@ struct ARUPDATER_Downloader_t
     int isRunning;
     int isCanceled;
     
+    ARSAL_MD5_Manager_t *md5Manager;
+    
     ARSAL_Mutex_t requestLock;
     ARSAL_Mutex_t downloadLock;
     ARUTILS_Http_Connection_t *requestConnection;

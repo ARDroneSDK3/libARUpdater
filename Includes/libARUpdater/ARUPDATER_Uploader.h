@@ -11,7 +11,7 @@
 #include <libARUpdater/ARUPDATER_Manager.h>
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
 #include <libARDataTransfer/ARDATATRANSFER_Uploader.h>
-
+#include <libARSAL/ARSAL_MD5_Manager.h>
 
 typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
 
@@ -22,6 +22,7 @@ typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
  * @param manager : pointer on the manager
  * @param[in] rootFolder : root folder
  * @param[in] ftpManager : ftp manager initialized with the correct network (wifi or ble)
+ * @param[in] md5Manager : md5 manager
  * @param[in] product : enumerator on the enum
  * @param[in] progressCallback : callback which tells the progress of the download
  * @param[in|out] progressArg : arg given to the progressCallback
@@ -30,7 +31,7 @@ typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  * @see ARUPDATER_Uploader_Delete()
  */
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, eARDISCOVERY_PRODUCT product, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg);
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg);
 
 
 /**

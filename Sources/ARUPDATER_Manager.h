@@ -13,8 +13,8 @@
 
 #define ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE        10
 #define ARUPDATER_MANAGER_FOLDER_SEPARATOR              "/"
-#define ARUPDATER_MANAGER_PLF_FILENAME                  "plf.plf"
 #define ARUPDATER_MANAGER_PLF_FOLDER                    "plfFolder/"
+#define ARUPDATER_MANAGER_PLF_EXTENSION                 ".plf"
 
 /**
  * @brief Manager structure

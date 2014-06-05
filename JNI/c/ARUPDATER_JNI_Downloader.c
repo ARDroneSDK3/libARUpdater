@@ -56,9 +56,10 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_n
     return jret;
 }
 
-JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jobject jDownloadListener, jobject jDownloadArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jMD5Manager, jobject jDownloadListener, jobject jDownloadArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    ARSAL_MD5_Manager_t *nativeMD5Manager = (ARSAL_MD5_Manager_t*)(intptr_t)jMD5Manager;
     ARUPDATER_JNI_DownloaderCallbacks_t *callbacks = NULL;
     eARUPDATER_ERROR result = ARUPDATER_OK;
     int error = JNI_OK;
@@ -115,7 +116,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Downloader_New(nativeManager, rootFolder, ARUPDATER_JNI_Downloader_ShouldDownloadCallback, callbacks, ARUPDATER_JNI_Downloader_ProgressCallback, callbacks, ARUPDATER_JNI_Downloader_CompletionCallback, callbacks);
+        result = ARUPDATER_Downloader_New(nativeManager, rootFolder, nativeMD5Manager, ARUPDATER_JNI_Downloader_ShouldDownloadCallback, callbacks, ARUPDATER_JNI_Downloader_ProgressCallback, callbacks, ARUPDATER_JNI_Downloader_CompletionCallback, callbacks);
     }
 
     if ((result != ARUPDATER_OK) && (callbacks != NULL))

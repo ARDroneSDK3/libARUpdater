@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <libARSAL/ARSAL_Print.h>
+#include <libARSAL/ARSAL_Error.h>
 #include <libARUtils/ARUTILS_Http.h>
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
 #include "ARUPDATER_Manager.h"
@@ -54,13 +55,13 @@
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Downloader_t *downloader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
 
     // Check parameters
-    if ((manager == NULL) || (rootFolder == NULL))
+    if ((manager == NULL) || (rootFolder == NULL) || (md5Manager == NULL))
     {
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
@@ -103,6 +104,8 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         {
             strcat(downloader->rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
         }
+        
+        downloader->md5Manager = md5Manager;
 
         downloader->downloadArg = downloadArg;
         downloader->progressArg = progressArg;
@@ -208,15 +211,14 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     int edit;
     int ext;
     eARUTILS_ERROR utilsError = ARUTILS_OK;
-    char *device;
-    char *deviceFolder;
-    char *filePath;
+    char *device = NULL;
+    char *deviceFolder = NULL;
+    char *filePath = NULL;
     uint32_t dataSize;
-    char **dataPtr;
+    char **dataPtr = NULL;
     ARSAL_Sem_t requestSem;
     ARSAL_Sem_t dlSem;
-    FILE* downloadedFile;
-
+    
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
     strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
@@ -239,15 +241,19 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         strcat(deviceFolder, device);
         strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
 
-        // file path = deviceFolder + plfFilename + \0
-        filePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1);
-        strcpy(filePath, deviceFolder);
-        strcat(filePath, ARUPDATER_MANAGER_PLF_FILENAME);
-
-        error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
-
-        // if the file does not exist, force to download
-        if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
+        char *fileName = malloc(1);
+        error = ARUPDATER_Utils_GetPlfInFolder(deviceFolder, &fileName);
+        if (error == ARUPDATER_OK)
+        {
+            // file path = deviceFolder + plfFilename + \0
+            filePath = malloc(strlen(deviceFolder) + strlen(fileName) + 1);
+            strcpy(filePath, deviceFolder);
+            strcat(filePath, fileName);
+            
+            error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
+        }
+        // else if the file does not exist, force to download
+        else if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
         {
             version = 0;
             edit = 0;
@@ -275,7 +281,8 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 fclose(dir);
             }
         }
-        edit = 20; // TODO: delete
+        
+        free(fileName);
 
         // init the request semaphore
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
@@ -394,14 +401,19 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     manager->downloader->shouldDownloadCallback(manager->downloader->downloadArg, 1);
                 }
                 char *downloadUrl = strtok(NULL, "|");
-                //char *remoteMD5 = strtok(NULL, "|");
+                char *remoteMD5 = strtok(NULL, "|");
                 char *downloadEndUrl;
                 char *downloadServer;
-                char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(filePath) + 1);
-
+                char *downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
+                if(downloadedFileName != NULL && strlen(downloadedFileName) > 0)
+                {
+                    downloadedFileName = &downloadedFileName[1];
+                }
+                
+                char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(downloadedFileName) + 1);
                 strcpy(downloadedFilePath, deviceFolder);
                 strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
-                strcat(downloadedFilePath, ARUPDATER_MANAGER_PLF_FILENAME);
+                strcat(downloadedFilePath, downloadedFileName);
 
                 // explode the download url into server and endUrl
                 if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
@@ -474,54 +486,36 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 }
                 ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
-                // if no error, check the md5
+                // check md5 match
                 if (error == ARUPDATER_OK)
                 {
-                    downloadedFile = fopen(downloadedFilePath, "rb");
-                    if (downloadedFile == NULL)
+                    eARSAL_ERROR arsalError = ARSAL_MD5_Manager_Check(manager->downloader->md5Manager, downloadedFilePath, remoteMD5);
+                    if(ARSAL_OK != arsalError)
                     {
-                        error = ARUPDATER_ERROR_DOWNLOADER_FILE_NOT_FOUND;
+                        error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
                     }
                 }
 
                 if (error == ARUPDATER_OK)
                 {
-                    /*crypto_hash_t *md5=crypto_hash_md5_new();
-
-                      char line[ARUPDATER_DOWNLOADER_CHUNK_SIZE];
-                      char md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE + 1];
-                      uint8_t md5Hex[ARUPDATER_DOWNLOADER_MD5_HEX_SIZE];
-
-                      int size = 0;
-                      while ((size = fread(line, 1, ARUPDATER_DOWNLOADER_CHUNK_SIZE, downloadedFile)) != 0)
-                      {
-                      md5->push_data(md5, (uint8_t*)line, size);
-                      }
-                      md5->get_hash(md5, md5Hex, ARUPDATER_DOWNLOADER_MD5_HEX_SIZE);
-                      md5->destroy(md5);
-                      int i = 0;
-                      for (i = 0; i < ARUPDATER_DOWNLOADER_MD5_HEX_SIZE; i++)
-                      {
-                      sprintf(&md5Txt[i * 2], "%02x", md5Hex[i]);
-                      }
-                      md5Txt[ARUPDATER_DOWNLOADER_MD5_TXT_SIZE] = '\0';
-
-                      if (strcmp(md5Txt, remoteMD5) != 0)
-                      {
-                      error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
-                      }*/
-
-                    fclose(downloadedFile);
-                }
-
-                if (error == ARUPDATER_OK)
-                {
+                    // if the file didn't exist before, file path is NULL
+                    if (filePath == NULL)
+                    {
+                        filePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
+                        strcpy(filePath, deviceFolder);
+                        strcat(filePath, downloadedFileName);
+                    }
                     if (rename(downloadedFilePath, filePath) != 0)
                     {
                         error = ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE;
                     }
                 }
 
+                if (filePath != NULL)
+                {
+                    free(filePath);
+                    filePath = NULL;
+                }
                 free(downloadServer);
                 free(downloadedFilePath);
             }
@@ -530,19 +524,24 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
             }
         }
-        free(deviceFolder);
-        free(filePath);
-        free(device);
-        free(dataPtr);
-        product++;
-    }
-
-    if (ARUPDATER_OK == error)
-    {
-        if (manager->downloader->plfDownloadCompletionCallback != NULL)
+        if (deviceFolder != NULL)
         {
-            manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
+            free(deviceFolder);
         }
+        if (filePath != NULL)
+        {
+            free(filePath);
+        }
+        if (device != NULL)
+        {
+            free(device);
+        }
+        if (dataPtr != NULL)
+        {
+            free(dataPtr);
+        }
+        
+        product++;
     }
 
     free(plfFolder);
@@ -555,6 +554,11 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     if (manager != NULL)
     {
         manager->downloader->isRunning = 0;
+    }
+    
+    if (manager->downloader->plfDownloadCompletionCallback != NULL)
+    {
+        manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
     }
 
     return (void*)error;

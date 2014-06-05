@@ -21,6 +21,8 @@ struct ARUPDATER_Uploader_t
     int isCanceled;
     int isUploadThreadRunning;
     
+    ARSAL_MD5_Manager_t *md5Manager;
+    
     ARSAL_Mutex_t uploadLock;
     
     ARDATATRANSFER_Manager_t* dataTransferManager;

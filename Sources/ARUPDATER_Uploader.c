@@ -9,9 +9,11 @@
 #include <stdlib.h>
 #include <libARSAL/ARSAL_Print.h>
 #include <libARUtils/ARUtils.h>
+#include <libARSAL/ARSAL_Error.h>
 #include "ARUPDATER_Manager.h"
 
 #include "ARUPDATER_Uploader.h"
+#include "ARUPDATER_Utils.h"
 
 /* ***************************************
  *
@@ -20,21 +22,21 @@
  *****************************************/
 #define ARUPDATER_UPLOADER_TAG                   "ARUPDATER_Uploader"
 #define ARUPDATER_UPLOADER_REMOTE_FOLDER         "/"
-
-
+#define ARUPDATER_UPLOADER_MD5_FILENAME          "md5_check.txt"
+#define ARUPDATER_UPLOADER_CHUNK_SIZE            32
 /* ***************************************
  *
  *             function implementation :
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, eARDISCOVERY_PRODUCT product, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Uploader_t *uploader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
     
     // Check parameters
-    if (rootFolder == NULL)
+    if ((manager == NULL) || (rootFolder == NULL) || (ftpManager == NULL) || (md5Manager == NULL))
     {
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
@@ -80,6 +82,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         
         uploader->product = product;
         uploader->ftpManager = ftpManager;
+        uploader->md5Manager = md5Manager;
         
         uploader->isRunning = 0;
         uploader->isCanceled = 0;
@@ -180,36 +183,127 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     
     eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
 
-    char *sourceFilePath;
-    char *destFilePath;
-    char *device;
+    char *sourceFileFolder = NULL;
+    char *sourceFilePath = NULL;
+    char *sourceMD5FilePath = NULL;
+    char *destFilePath = NULL;
+    char *device = NULL;
+    char *fileName = NULL;
+    char *md5Txt = NULL;
     
     uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
     device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
     snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
     
-    destFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1);
-    strcpy(destFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-    strcat(destFilePath, ARUPDATER_MANAGER_PLF_FILENAME);
-
-    sourceFilePath = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + strlen(ARUPDATER_MANAGER_PLF_FILENAME) + 1);
-    strcpy(sourceFilePath, manager->uploader->rootFolder);
-    strcat(sourceFilePath, ARUPDATER_MANAGER_PLF_FOLDER);
-    strcat(sourceFilePath, device);
-    strcat(sourceFilePath, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
-    strcat(sourceFilePath, ARUPDATER_MANAGER_PLF_FILENAME);
+    sourceFileFolder = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
+    strcpy(sourceFileFolder, manager->uploader->rootFolder);
+    strcat(sourceFileFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+    strcat(sourceFileFolder, device);
+    strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+    
+    fileName = malloc(1);
+    error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
+    
+    if (error == ARUPDATER_OK)
+    {
+        destFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + 1);
+        strcpy(destFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+        strcat(destFilePath, fileName);
+        
+        sourceFilePath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
+        strcpy(sourceFilePath, sourceFileFolder);
+        strcat(sourceFilePath, fileName);
+        
+        sourceMD5FilePath = malloc(strlen(sourceFileFolder) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
+        strcpy(sourceMD5FilePath, sourceFileFolder);
+        strcat(sourceMD5FilePath, ARUPDATER_UPLOADER_MD5_FILENAME);
+    }
+    
+    if (error == ARUPDATER_OK)
+    {
+        uint8_t *md5 = malloc(ARSAL_MD5_LENGTH);
+        eARSAL_ERROR arsalError = ARSAL_MD5_Manager_Compute(manager->uploader->md5Manager, sourceFilePath, md5, ARSAL_MD5_LENGTH);
+        if (ARSAL_OK == arsalError)
+        {
+            // get md5 in text
+            char *md5Txt = malloc(ARSAL_MD5_LENGTH * 2);
+            int i = 0;
+            for (i = 0; i < ARSAL_MD5_LENGTH; i++)
+            {
+                sprintf(&md5Txt[i * 2], "%02x", md5[i]);
+            }
+        }
+        else
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARSAL_ERROR;
+        }
+        free(md5);
+    }
+    
+    // by default, do not resume an upload
+    eARDATATRANSFER_UPLOADER_RESUME resumeMode = ARDATATRANSFER_UPLOADER_RESUME_FALSE;
+    
+    // check if an upload was in progress
+    if (ARUPDATER_OK == error)
+    {
+        // an upload should be resumed if and only if the md5 file is present and the md5 in file match with the plf file md5
+        FILE *md5File = fopen(sourceMD5FilePath, "rb");
+        if (md5File != NULL)
+        {
+            int size = 0;
+            char line[ARUPDATER_UPLOADER_CHUNK_SIZE];
+            int allocatedSize = 1;
+            char *uploadedMD5 = malloc(allocatedSize);
+            strcpy(uploadedMD5, "");
+            while ((size = fread(line, 1, ARUPDATER_UPLOADER_CHUNK_SIZE, md5File)) != 0)
+            {
+                allocatedSize += size;
+                uploadedMD5 = realloc(uploadedMD5, allocatedSize);
+                strcat(uploadedMD5, line);
+            }
+            fclose(md5File);
+            
+            // md5s match, so we can resume the upload
+            if (strcmp(md5Txt, uploadedMD5) == 0)
+            {
+                resumeMode = ARDATATRANSFER_UPLOADER_RESUME_TRUE;
+            } // ELSE md5s don't match, so keep the default value of resumeMode (=> begin a new upload)
+            
+            free(uploadedMD5);
+        }
+    }
     
     ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
     // create a new uploader
     if (ARUPDATER_OK == error)
     {
-        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, manager->uploader->completionCallback, manager->uploader->completionArg, ARDATATRANSFER_UPLOADER_RESUME_FALSE);
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, manager->uploader->completionCallback, manager->uploader->completionArg, resumeMode);
         if (ARDATATRANSFER_OK != dataTransferError)
         {
             error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
         }
     }
     ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+    
+    if ((ARUPDATER_OK == error) && (resumeMode == ARDATATRANSFER_UPLOADER_RESUME_FALSE))
+    {
+        // if the upload is a new one, store the md5 in a file
+        FILE *md5File = fopen(sourceMD5FilePath, "wb");
+        if (md5File != NULL)
+        {
+            fprintf(md5File, "%s", md5Txt);
+            fclose(md5File);
+        }
+        else
+        {
+            error = ARUPDATER_ERROR_UPLOADER;
+        }
+    }
+    
+    if (md5Txt != NULL)
+    {
+        free(md5Txt);
+    }
     
     if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
     {
@@ -234,8 +328,30 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (error));
     }
     
-    free(device);
-    free(sourceFilePath);
+    if (sourceFileFolder != NULL)
+    {
+        free(sourceFileFolder);
+    }
+    if (sourceMD5FilePath != NULL)
+    {
+        free(sourceMD5FilePath);
+    }
+    if (sourceFilePath != NULL)
+    {
+        free(sourceFilePath);
+    }
+    if (device != NULL)
+    {
+        free(device);
+    }
+    if (fileName != NULL)
+    {
+        free(fileName);
+    }
+    if (destFilePath != NULL)
+    {
+        free(destFilePath);
+    }
     
     if (manager != NULL)
     {

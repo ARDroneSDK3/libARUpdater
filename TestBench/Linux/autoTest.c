@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <libARUpdater/ARUpdater.h>
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
+#include <libARSAL/ARSAL.h>
 
 /* ****************************************
  *
@@ -98,12 +99,25 @@ void test_ftp_upload_callback(void* arg, eARDATATRANSFER_ERROR error)
 int main(int argc, char *argv[])
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
+    eARSAL_ERROR arsalError = ARSAL_OK;
+    ARUPDATER_Manager_t *manager = NULL;
     
-    ARUPDATER_Manager_t *manager = ARUPDATER_Manager_New(&error);
+    // this md5Manager is useless with Unix target
+    ARSAL_MD5_Manager_t* md5Manager = ARSAL_MD5_Manager_New(&arsalError);
+    fprintf(stderr, "****** Watch out, This autotest can't succeed on Unix because md5 checksum is not implemented ****\n");
+    if (arsalError != ARSAL_OK)
+    {
+        error = ARUPDATER_ERROR_SYSTEM;
+    }
+    
+    if (error == ARUPDATER_OK)
+    {
+        manager = ARUPDATER_Manager_New(&error);
+    }
+    
     if(error == ARUPDATER_OK)
     {
-        
-        error =  ARUPDATER_Downloader_New(manager, "./test", test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
+        error =  ARUPDATER_Downloader_New(manager, "./test", md5Manager, test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
         
         if (error == ARUPDATER_OK)
         {
@@ -111,7 +125,7 @@ int main(int argc, char *argv[])
         }
         
         fprintf(stderr, "Download finish, uploading now \n");
-        if (error == ARUPDATER_OK)
+        /*if (error == ARUPDATER_OK)
         {
             eARUTILS_ERROR ftpError = ARUTILS_OK;
             ARUTILS_Manager_t *ftpManager = ARUTILS_Manager_New(&ftpError);
@@ -123,7 +137,7 @@ int main(int argc, char *argv[])
             
             if(ftpError == ARUTILS_OK)
             {
-                error = ARUPDATER_Uploader_New(manager, "./test", ftpManager, ARDISCOVERY_PRODUCT_JS, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
+                error = ARUPDATER_Uploader_New(manager, "./test", ftpManager, md5Manager, ARDISCOVERY_PRODUCT_JS, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
             }
             else
             {
@@ -134,15 +148,19 @@ int main(int argc, char *argv[])
         if (error == ARUPDATER_OK)
         {
             error = (eARUPDATER_ERROR)ARUPDATER_Uploader_ThreadRun(manager);
-        }
+        }*/
         
+        ARUPDATER_Downloader_Delete(manager);
+        //ARUPDATER_Uploader_Delete(manager);
         ARUPDATER_Manager_Delete(&manager);
     }
-    else
+    else if(manager != NULL)
     {
         // if there was an error in creating a new manager
         ARUPDATER_Manager_Delete(&manager);
     }
+    
+    ARSAL_MD5_Manager_Delete(&md5Manager);
     
     fprintf(stderr, "Sum up : %s\n", ARUPDATER_Error_ToString(error));
     

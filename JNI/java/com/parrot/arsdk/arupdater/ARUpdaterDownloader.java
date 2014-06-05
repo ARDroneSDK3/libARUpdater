@@ -3,6 +3,7 @@ package com.parrot.arsdk.arupdater;
 
 import java.lang.Runnable;
 import com.parrot.arsdk.arsal.ARSALPrint;
+import com.parrot.arsdk.arsal.ARSALMd5Manager;
 
 
 public class ARUpdaterDownloader
@@ -12,7 +13,7 @@ public class ARUpdaterDownloader
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
+    private native int nativeNew(long manager, String rootFolder, long md5Manager, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
     	ARUpdaterPlfDownloadProgressListener plfDownloadProgressListener, Object progressArgs, 
     	ARUpdaterPlfDownloadCompletionListener plfDownloadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
@@ -52,11 +53,11 @@ public class ARUpdaterDownloader
      * @return void
      * @throws ARUpdaterException if error
      */
-    public void createUpdaterDownloader(String rootFolder, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
+    public void createUpdaterDownloader(String rootFolder, ARSALMd5Manager md5Manager, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
     	ARUpdaterPlfDownloadProgressListener plfDownloadProgressListener, Object progressArgs, 
     	ARUpdaterPlfDownloadCompletionListener plfDownloadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
-    	int result = nativeNew(nativeManager, rootFolder, shouldDownloadPlfListener, downloadArgs, plfDownloadProgressListener, progressArgs, plfDownloadCompletionListener, completionArgs);
+    	int result = nativeNew(nativeManager, rootFolder, md5Manager.getNativeManager(), shouldDownloadPlfListener, downloadArgs, plfDownloadProgressListener, progressArgs, plfDownloadCompletionListener, completionArgs);
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 

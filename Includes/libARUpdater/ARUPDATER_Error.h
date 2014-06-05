@@ -37,6 +37,7 @@ typedef enum
     ARUPDATER_ERROR_UPLOADER = -4000,                   /**< Generic Uploader error */
     ARUPDATER_ERROR_UPLOADER_ARUTILS_ERROR,             /**< error on a ARUtils operation in uploader*/
     ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR,      /**< error on a ARDataTransfer operation in uploader*/
+    ARUPDATER_ERROR_UPLOADER_ARSAL_ERROR,               /**< error on a ARSAL operation in uploader*/
     
 } eARUPDATER_ERROR;
 

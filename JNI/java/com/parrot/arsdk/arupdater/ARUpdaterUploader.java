@@ -5,6 +5,7 @@ import java.lang.Runnable;
 import com.parrot.arsdk.arsal.ARSALPrint;
 import com.parrot.arsdk.ardiscovery.ARDISCOVERY_PRODUCT_ENUM;
 import com.parrot.arsdk.arutils.ARUtilsManager;
+import com.parrot.arsdk.arsal.ARSALMd5Manager;
 
 
 public class ARUpdaterUploader
@@ -14,7 +15,7 @@ public class ARUpdaterUploader
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, long utilsManager, int discoveryProduct, 
+    private native int nativeNew(long manager, String rootFolder, long utilsManager, long md5Manager, int discoveryProduct, 
     	ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
     	ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
@@ -54,11 +55,11 @@ public class ARUpdaterUploader
      * @return void
      * @throws ARUpdaterException if error
      */
-    public void createUpdaterUploader(String rootFolder, ARUtilsManager utilsManager, ARDISCOVERY_PRODUCT_ENUM product, 
+    public void createUpdaterUploader(String rootFolder, ARUtilsManager utilsManager, ARSALMd5Manager md5Manager, ARDISCOVERY_PRODUCT_ENUM product, 
         ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
         ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
-    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), product.getValue(), plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
+    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), md5Manager.getNativeManager(), product.getValue(), plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 
