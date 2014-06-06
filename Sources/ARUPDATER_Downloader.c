@@ -33,6 +33,7 @@
 #define ARUPDATER_DOWNLOADER_VERSION_PARAM                 "&version="
 #define ARUPDATER_DOWNLOADER_VERSION_SEPARATOR             "."
 #define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX        "tmp_"
+#define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX        ".tmp"
 #define ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE          "0000"
 
 #define ARUPDATER_DOWNLOADER_PHP_ERROR_OK                  "0"
@@ -403,10 +404,11 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     downloadedFileName = &downloadedFileName[1];
                 }
                 
-                char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(downloadedFileName) + 1);
+                char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(downloadedFileName) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX) + 1);
                 strcpy(downloadedFilePath, deviceFolder);
                 strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
                 strcat(downloadedFilePath, downloadedFileName);
+                strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
                 
                 char *downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
                 strcpy(downloadedFinalFilePath, deviceFolder);
