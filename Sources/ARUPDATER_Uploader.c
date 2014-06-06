@@ -261,7 +261,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
             {
                 allocatedSize += size;
                 uploadedMD5 = realloc(uploadedMD5, allocatedSize);
-                strcat(uploadedMD5, line);
+                strncat(uploadedMD5, line, size);
             }
             fclose(md5File);
             md5File = NULL;
