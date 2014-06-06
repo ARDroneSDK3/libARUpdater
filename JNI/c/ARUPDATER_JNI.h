@@ -211,7 +211,7 @@ void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, uint8_t percent);
  * @retval void
  * @see ARUPDATER_JNI_Uploader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR nativeError);
+void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARUPDATER_ERROR nativeError);
 
 
 /**

@@ -30,7 +30,7 @@
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Uploader_t *uploader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
@@ -281,7 +281,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     // create a new uploader
     if (ARUPDATER_OK == error)
     {
-        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, manager->uploader->progressCallback, manager->uploader->progressArg, ARUPDATER_Uploader_UploadCompletionCallback, manager, resumeMode);
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, ARUPDATER_Uploader_UploadProgressCallback, manager, ARUPDATER_Uploader_UploadCompletionCallback, manager, resumeMode);
         if (ARDATATRANSFER_OK != dataTransferError)
         {
             error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
@@ -315,6 +315,10 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         manager->uploader->isUploadThreadRunning = 1;
         ARDATATRANSFER_Uploader_ThreadRun(manager->uploader->dataTransferManager);
         manager->uploader->isUploadThreadRunning = 0;
+        if (manager->uploader->uploadError != ARDATATRANSFER_OK)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
     }
     
     ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
@@ -365,10 +369,19 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     
     if (manager->uploader->completionCallback != NULL)
     {
-        manager->uploader->completionCallback(manager->uploader->completionArg, manager->uploader->uploadError);
+        manager->uploader->completionCallback(manager->uploader->completionArg, error);
     }
     
     return (void*)error;
+}
+
+void ARUPDATER_Uploader_UploadProgressCallback(void* arg, uint8_t percent)
+{
+    ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t *)arg;
+    if (manager->uploader->progressCallback != NULL)
+    {
+        manager->uploader->progressCallback(manager->uploader->progressArg, percent);
+    }
 }
 
 void ARUPDATER_Uploader_UploadCompletionCallback(void* arg, eARDATATRANSFER_ERROR error)

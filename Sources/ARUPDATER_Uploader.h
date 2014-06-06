@@ -27,8 +27,8 @@ struct ARUPDATER_Uploader_t
     
     ARDATATRANSFER_Manager_t* dataTransferManager;
     
-    ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback;
-    ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback;
+    ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback;
+    ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback;
     void *progressArg;
     void *completionArg;
     
@@ -36,6 +36,7 @@ struct ARUPDATER_Uploader_t
     
 };
 
+void ARUPDATER_Uploader_UploadProgressCallback(void* arg, uint8_t percent);
 void ARUPDATER_Uploader_UploadCompletionCallback(void* arg, eARDATATRANSFER_ERROR error);
 
 #endif

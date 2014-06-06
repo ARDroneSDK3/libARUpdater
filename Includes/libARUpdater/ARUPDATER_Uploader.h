@@ -16,6 +16,22 @@
 typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
 
 /**
+ * @brief Progress callback of the upload
+ * @param arg The pointer of the user custom argument
+ * @param percent The percent size of the plf file already uploaded
+ * @see ARUPDATER_Manager_CheckLocaleVersionThreadRun ()
+ */
+typedef void (*ARUPDATER_Uploader_PlfUploadProgressCallback_t) (void* arg, uint8_t percent);
+
+/**
+ * @brief Completion callback of the Plf upload
+ * @param arg The pointer of the user custom argument
+ * @param error The error status to indicate the plf upload status
+ * @see ARUPDATER_Manager_CheckLocaleVersionThreadRun ()
+ */
+typedef void (*ARUPDATER_Uploader_PlfUploadCompletionCallback_t) (void* arg, eARUPDATER_ERROR error);
+
+/**
  * @brief Create an object to upload a plf file
  * @warning this function allocates memory
  * @post ARUPDATER_Uploader_Delete should be called
@@ -31,7 +47,7 @@ typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  * @see ARUPDATER_Uploader_Delete()
  */
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARDATATRANSFER_Uploader_ProgressCallback_t progressCallback, void *progressArg, ARDATATRANSFER_Uploader_CompletionCallback_t completionCallback, void *completionArg);
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg);
 
 
 /**
