@@ -213,7 +213,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     eARUTILS_ERROR utilsError = ARUTILS_OK;
     char *device = NULL;
     char *deviceFolder = NULL;
-    char *filePath = NULL;
+    char *existingPlfFilePath = NULL;
     uint32_t dataSize;
     char **dataPtr = NULL;
     ARSAL_Sem_t requestSem;
@@ -246,11 +246,11 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         if (error == ARUPDATER_OK)
         {
             // file path = deviceFolder + plfFilename + \0
-            filePath = malloc(strlen(deviceFolder) + strlen(fileName) + 1);
-            strcpy(filePath, deviceFolder);
-            strcat(filePath, fileName);
+            existingPlfFilePath = malloc(strlen(deviceFolder) + strlen(fileName) + 1);
+            strcpy(existingPlfFilePath, deviceFolder);
+            strcat(existingPlfFilePath, fileName);
             
-            error = ARUPDATER_Utils_GetPlfVersion(filePath, &version, &edit, &ext);
+            error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
         }
         // else if the file does not exist, force to download
         else if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
@@ -407,6 +407,10 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 strcpy(downloadedFilePath, deviceFolder);
                 strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
                 strcat(downloadedFilePath, downloadedFileName);
+                
+                char *downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
+                strcpy(downloadedFinalFilePath, deviceFolder);
+                strcat(downloadedFinalFilePath, downloadedFileName);
 
                 // explode the download url into server and endUrl
                 if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
@@ -484,14 +488,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 
                 if (error == ARUPDATER_OK)
                 {
-                    // if the file didn't exist before, file path is NULL
-                    if (filePath == NULL)
+                    // if the existingPlfFilePath was set, a plf was in the folder, so delete it before renaming the file
+                    if (existingPlfFilePath != NULL)
                     {
-                        filePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
-                        strcpy(filePath, deviceFolder);
-                        strcat(filePath, downloadedFileName);
+                        unlink(existingPlfFilePath);
                     }
-                    if (rename(downloadedFilePath, filePath) != 0)
+                    if (rename(downloadedFilePath, downloadedFinalFilePath) != 0)
                     {
                         error = ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE;
                     }
@@ -507,6 +509,11 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     free(downloadedFilePath);
                     downloadedFilePath = NULL;
                 }
+                if (downloadedFinalFilePath != NULL)
+                {
+                    free(downloadedFinalFilePath);
+                    downloadedFinalFilePath = NULL;
+                }
             }
             else
             {
@@ -518,10 +525,10 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             free(deviceFolder);
             deviceFolder = NULL;
         }
-        if (filePath != NULL)
+        if (existingPlfFilePath != NULL)
         {
-            free(filePath);
-            filePath = NULL;
+            free(existingPlfFilePath);
+            existingPlfFilePath = NULL;
         }
         if (device != NULL)
         {
