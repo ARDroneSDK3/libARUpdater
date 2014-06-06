@@ -76,4 +76,12 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg);
  */
 eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager);
 
+/**
+ * @brief Get if the thread is still running
+ * @param manager : pointer on the manager
+ * @param[out] error : pointer on an error. This can be null
+ * @return 1 if the upload thread is running, 0 otherwise
+ */
+int ARUPDATER_Uploader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_ERROR *error);
+
 #endif

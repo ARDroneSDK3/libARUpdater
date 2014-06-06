@@ -178,7 +178,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
     
-    if (manager != NULL)
+    if ((manager != NULL) && (manager->uploader != NULL))
     {
         manager->uploader->isRunning = 1;
     }
@@ -362,7 +362,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         free(destFilePath);
     }
     
-    if (manager != NULL)
+    if ((manager != NULL) && (manager->uploader != NULL))
     {
         manager->uploader->isRunning = 0;
     }
@@ -426,5 +426,33 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
     }
     
     return error;
+}
+
+int ARUPDATER_Uploader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_ERROR *error)
+{
+    eARUPDATER_ERROR err = ARUPDATER_OK;
+    int isRunning = 0;
+    
+    if (manager == NULL)
+    {
+        err = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    if ((err == ARUPDATER_OK) && (manager->uploader == NULL))
+    {
+        err = ARUPDATER_ERROR_NOT_INITIALIZED;
+    }
+    
+    if (err == ARUPDATER_OK)
+    {
+        isRunning = manager->uploader->isRunning;
+    }
+    
+    if (error != NULL)
+    {
+        *error = err;
+    }
+    
+    return isRunning;
 }
 

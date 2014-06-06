@@ -202,7 +202,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
 
-    if (manager != NULL)
+    if ((manager != NULL) && (manager->downloader != NULL))
     {
         manager->downloader->isRunning = 1;
     }
@@ -566,7 +566,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (error));
     }
 
-    if (manager != NULL)
+    if ((manager != NULL) && (manager->downloader != NULL))
     {
         manager->downloader->isRunning = 0;
     }
@@ -628,4 +628,32 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
     }
 
     return error;
+}
+
+int ARUPDATER_Downloader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_ERROR *error)
+{
+    eARUPDATER_ERROR err = ARUPDATER_OK;
+    int isRunning = 0;
+    
+    if (manager == NULL)
+    {
+        err = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    if ((err == ARUPDATER_OK) && (manager->downloader == NULL))
+    {
+        err = ARUPDATER_ERROR_NOT_INITIALIZED;
+    }
+    
+    if (err == ARUPDATER_OK)
+    {
+        isRunning = manager->downloader->isRunning;
+    }
+    
+    if (error != NULL)
+    {
+        *error = err;
+    }
+    
+    return isRunning;
 }

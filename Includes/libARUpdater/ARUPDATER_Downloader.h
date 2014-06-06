@@ -81,4 +81,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg);
  * @see ARUPDATER_Downloader_ThreadRun()
  */
 eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager);
+
+/**
+ * @brief Get if the thread is still running
+ * @param manager : pointer on the manager
+ * @param[out] error : pointer on an error. This can be null
+ * @return 1 if the download thread is running, 0 otherwise
+ */
+int ARUPDATER_Downloader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_ERROR *error);
 #endif
