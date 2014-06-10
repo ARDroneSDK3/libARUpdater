@@ -252,7 +252,7 @@ void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, float percent)
         if ((ARUPDATER_JNI_Manager_VM != NULL) && (callbacks->jProgressListener != NULL) && (methodId_UploaderListener_onPlfUploadProgress != NULL))
         {
             JNIEnv *env = NULL;
-            jint jPercent = 0;
+            jfloat jPercent = 0;
             jint jResultEnv = 0;
             int error = JNI_OK;
 
