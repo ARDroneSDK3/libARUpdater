@@ -39,7 +39,7 @@ struct ARUPDATER_Uploader_t
     
 };
 
-void ARUPDATER_Uploader_ProgressCallback(void* arg, uint8_t percent);
+void ARUPDATER_Uploader_ProgressCallback(void* arg, float percent);
 void ARUPDATER_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR error);
 
 #endif

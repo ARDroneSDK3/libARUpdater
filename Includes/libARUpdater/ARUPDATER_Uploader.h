@@ -20,7 +20,7 @@ typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
  * @param percent The percent size of the plf file already uploaded
  * @see ARUPDATER_Manager_CheckLocaleVersionThreadRun ()
  */
-typedef void (*ARUPDATER_Uploader_PlfUploadProgressCallback_t) (void* arg, uint8_t percent);
+typedef void (*ARUPDATER_Uploader_PlfUploadProgressCallback_t) (void* arg, float percent);
 
 /**
  * @brief Completion callback of the Plf upload

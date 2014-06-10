@@ -461,7 +461,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     return (void*)error;
 }
 
-void ARUPDATER_Uploader_ProgressCallback(void* arg, uint8_t percent)
+void ARUPDATER_Uploader_ProgressCallback(void* arg, float percent)
 {
     ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t *)arg;
     if (manager->uploader->progressCallback != NULL)

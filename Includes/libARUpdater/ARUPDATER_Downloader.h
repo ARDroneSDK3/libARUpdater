@@ -26,7 +26,7 @@ typedef void (*ARUPDATER_Downloader_ShouldDownloadPlfCallback_t) (void* arg, int
  * @param percent The percent size of the plf file already downloaded
  * @see ARUPDATER_Manager_CheckLocaleVersionThreadRun ()
  */
-typedef void (*ARUPDATER_Downloader_PlfDownloadProgressCallback_t) (void* arg, uint8_t percent);
+typedef void (*ARUPDATER_Downloader_PlfDownloadProgressCallback_t) (void* arg, float percent);
 
 /**
  * @brief Completion callback of the Media download
