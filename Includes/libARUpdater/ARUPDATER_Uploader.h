@@ -10,7 +10,6 @@
 
 #include <libARUpdater/ARUPDATER_Manager.h>
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
-#include <libARDataTransfer/ARDATATRANSFER_Uploader.h>
 #include <libARSAL/ARSAL_MD5_Manager.h>
 
 typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;

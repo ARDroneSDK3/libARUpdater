@@ -9,6 +9,8 @@
 #define _ARUPDATER_UPLOADER_PRIVATE_H_
 
 #include <libARUpdater/ARUPDATER_Uploader.h>
+#include <libARDataTransfer/ARDATATRANSFER_Uploader.h>
+#include <libARDataTransfer/ARDATATRANSFER_Downloader.h>
 #include <libARSAL/ARSAL_Mutex.h>
 
 struct ARUPDATER_Uploader_t
@@ -20,6 +22,7 @@ struct ARUPDATER_Uploader_t
     int isRunning;
     int isCanceled;
     int isUploadThreadRunning;
+    int isDownloadMd5ThreadRunning;
     
     ARSAL_MD5_Manager_t *md5Manager;
     
@@ -36,7 +39,7 @@ struct ARUPDATER_Uploader_t
     
 };
 
-void ARUPDATER_Uploader_UploadProgressCallback(void* arg, uint8_t percent);
-void ARUPDATER_Uploader_UploadCompletionCallback(void* arg, eARDATATRANSFER_ERROR error);
+void ARUPDATER_Uploader_ProgressCallback(void* arg, uint8_t percent);
+void ARUPDATER_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR error);
 
 #endif

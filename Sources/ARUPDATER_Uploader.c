@@ -87,6 +87,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         uploader->isRunning = 0;
         uploader->isCanceled = 0;
         uploader->isUploadThreadRunning = 0;
+        uploader->isDownloadMd5ThreadRunning = 0;
         
         uploader->uploadError = ARDATATRANSFER_OK;
                 
@@ -187,11 +188,12 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
 
     char *sourceFileFolder = NULL;
     char *sourceFilePath = NULL;
-    char *sourceMD5FilePath = NULL;
     char *destFilePath = NULL;
     char *device = NULL;
     char *fileName = NULL;
     char *md5Txt = NULL;
+    char *md5RemotePath = NULL;
+    char *md5LocalPath = NULL;
     
     uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
     device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
@@ -216,11 +218,16 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         strcpy(sourceFilePath, sourceFileFolder);
         strcat(sourceFilePath, fileName);
         
-        sourceMD5FilePath = malloc(strlen(sourceFileFolder) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
-        strcpy(sourceMD5FilePath, sourceFileFolder);
-        strcat(sourceMD5FilePath, ARUPDATER_UPLOADER_MD5_FILENAME);
+        md5LocalPath = malloc(strlen(sourceFileFolder) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
+        strcpy(md5LocalPath, sourceFileFolder);
+        strcat(md5LocalPath, ARUPDATER_UPLOADER_MD5_FILENAME);
+        
+        md5RemotePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
+        strcpy(md5RemotePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+        strcat(md5RemotePath, ARUPDATER_UPLOADER_MD5_FILENAME);
     }
     
+    // get md5 of the plf file to upload
     if (error == ARUPDATER_OK)
     {
         uint8_t *md5 = malloc(ARSAL_MD5_LENGTH);
@@ -245,11 +252,41 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     // by default, do not resume an upload
     eARDATATRANSFER_UPLOADER_RESUME resumeMode = ARDATATRANSFER_UPLOADER_RESUME_FALSE;
     
+    // read distant plf md5
+    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+    if (ARUPDATER_OK == error)
+    {
+        dataTransferError = ARDATATRANSFER_Downloader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, md5RemotePath, md5LocalPath, NULL, NULL, ARUPDATER_Uploader_CompletionCallback, manager, ARDATATRANSFER_DOWNLOADER_RESUME_FALSE);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
+    }
+    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+    
+    if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
+    {
+        manager->uploader->isDownloadMd5ThreadRunning = 1;
+        ARDATATRANSFER_Downloader_ThreadRun(manager->uploader->dataTransferManager);
+        manager->uploader->isDownloadMd5ThreadRunning = 0;
+    }
+    
+    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+    if (ARUPDATER_OK == error)
+    {
+        dataTransferError = ARDATATRANSFER_Downloader_Delete(manager->uploader->dataTransferManager);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
+    }
+    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+    
     // check if an upload was in progress
     if (ARUPDATER_OK == error)
     {
         // an upload should be resumed if and only if the md5 file is present and the md5 in file match with the plf file md5
-        FILE *md5File = fopen(sourceMD5FilePath, "rb");
+        FILE *md5File = fopen(md5LocalPath, "rb");
         if (md5File != NULL)
         {
             int size = 0;
@@ -262,6 +299,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
                 allocatedSize += size;
                 uploadedMD5 = realloc(uploadedMD5, allocatedSize);
                 strncat(uploadedMD5, line, size);
+                uploadedMD5[allocatedSize] = '\0';
             }
             fclose(md5File);
             md5File = NULL;
@@ -274,25 +312,16 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
             
             free(uploadedMD5);
             uploadedMD5 = NULL;
+            
+            // delete the md5LocalPath file
+            unlink(md5LocalPath);
         }
     }
     
-    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
-    // create a new uploader
-    if (ARUPDATER_OK == error)
-    {
-        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, ARUPDATER_Uploader_UploadProgressCallback, manager, ARUPDATER_Uploader_UploadCompletionCallback, manager, resumeMode);
-        if (ARDATATRANSFER_OK != dataTransferError)
-        {
-            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
-        }
-    }
-    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
-    
+    // store in md5LocalPath the md5 of the file that will be uploaded if the upload is a new one
     if ((ARUPDATER_OK == error) && (resumeMode == ARDATATRANSFER_UPLOADER_RESUME_FALSE))
     {
-        // if the upload is a new one, store the md5 in a file
-        FILE *md5File = fopen(sourceMD5FilePath, "wb");
+        FILE *md5File = fopen(md5LocalPath, "wb");
         if (md5File != NULL && md5Txt != NULL)
         {
             fprintf(md5File, "%s", md5Txt);
@@ -302,6 +331,46 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         {
             error = ARUPDATER_ERROR_UPLOADER;
         }
+        
+        // create an uploader to upload the md5 file
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (ARUPDATER_OK == error)
+        {
+            dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, md5RemotePath, md5LocalPath, NULL, NULL, ARUPDATER_Uploader_CompletionCallback, manager, ARDATATRANSFER_UPLOADER_RESUME_FALSE);
+            if (ARDATATRANSFER_OK != dataTransferError)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+        
+        
+        if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
+        {
+            manager->uploader->isUploadThreadRunning = 1;
+            ARDATATRANSFER_Uploader_ThreadRun(manager->uploader->dataTransferManager);
+            manager->uploader->isUploadThreadRunning = 0;
+            if (manager->uploader->uploadError != ARDATATRANSFER_OK)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
+        }
+        
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (ARUPDATER_OK == error)
+        {
+            dataTransferError = ARDATATRANSFER_Uploader_Delete(manager->uploader->dataTransferManager);
+            if (ARDATATRANSFER_OK != dataTransferError)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+        
+        if (ARUPDATER_OK == error)
+        {
+            unlink(md5LocalPath);
+        }
     }
     
     if (md5Txt != NULL)
@@ -309,6 +378,19 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         free(md5Txt);
         md5Txt = NULL;
     }
+    
+    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+    // create a new uploader
+    if (ARUPDATER_OK == error)
+    {
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, ARUPDATER_Uploader_ProgressCallback, manager, ARUPDATER_Uploader_CompletionCallback, manager, resumeMode);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
+    }
+    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+    
     
     if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
     {
@@ -341,9 +423,13 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     {
         free(sourceFileFolder);
     }
-    if (sourceMD5FilePath != NULL)
+    if (md5LocalPath != NULL)
     {
-        free(sourceMD5FilePath);
+        free(md5LocalPath);
+    }
+    if (md5RemotePath != NULL)
+    {
+        free(md5RemotePath);
     }
     if (sourceFilePath != NULL)
     {
@@ -375,7 +461,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     return (void*)error;
 }
 
-void ARUPDATER_Uploader_UploadProgressCallback(void* arg, uint8_t percent)
+void ARUPDATER_Uploader_ProgressCallback(void* arg, uint8_t percent)
 {
     ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t *)arg;
     if (manager->uploader->progressCallback != NULL)
@@ -384,7 +470,7 @@ void ARUPDATER_Uploader_UploadProgressCallback(void* arg, uint8_t percent)
     }
 }
 
-void ARUPDATER_Uploader_UploadCompletionCallback(void* arg, eARDATATRANSFER_ERROR error)
+void ARUPDATER_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR error)
 {
     ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t *)arg;
     if (manager->uploader != NULL)
@@ -412,17 +498,19 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
         manager->uploader->isCanceled = 1;
         
         ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (manager->uploader->isDownloadMd5ThreadRunning == 1)
+        {
+            ARDATATRANSFER_Downloader_CancelThread(manager->uploader->dataTransferManager);
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+        
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
         if (manager->uploader->isUploadThreadRunning == 1)
         {
             ARDATATRANSFER_Uploader_CancelThread(manager->uploader->dataTransferManager);
         }
         ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
 
-    }
-    
-    if (error == ARUPDATER_OK)
-    {
-        manager->uploader->isRunning = 0;
     }
     
     return error;

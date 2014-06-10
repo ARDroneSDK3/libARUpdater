@@ -609,11 +609,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
         }
     }
 
-    if (error == ARUPDATER_OK)
-    {
-        manager->downloader->isRunning = 0;
-    }
-
     return error;
 }
 
