@@ -207,7 +207,7 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
 
         if (error == JNI_OK)
         {
-            methodId_DownloaderListener_onPlfDownloadProgress = (*env)->GetMethodID(env, classDownloaderProgressListener, "onPlfDownloadProgress", "(Ljava/lang/Object;I)V");
+            methodId_DownloaderListener_onPlfDownloadProgress = (*env)->GetMethodID(env, classDownloaderProgressListener, "onPlfDownloadProgress", "(Ljava/lang/Object;F)V");
 
             if (methodId_DownloaderListener_onPlfDownloadProgress == NULL)
             {
@@ -277,7 +277,7 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
  * @retval void
  * @see ARUPDATER_JNI_Downloader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Downloader_ProgressCallback(void* arg, uint8_t percent)
+void ARUPDATER_JNI_Downloader_ProgressCallback(void* arg, float percent)
 {
     ARUPDATER_JNI_DownloaderCallbacks_t *callbacks = (ARUPDATER_JNI_DownloaderCallbacks_t*)arg;
 

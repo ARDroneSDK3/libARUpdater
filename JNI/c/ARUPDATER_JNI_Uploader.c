@@ -198,7 +198,7 @@ int ARUPDATER_JNI_Uploader_NewListenersJNI(JNIEnv *env)
 
         if (error == JNI_OK)
         {
-            methodId_UploaderListener_onPlfUploadProgress = (*env)->GetMethodID(env, classUploaderProgressListener, "onPlfUploadProgress", "(Ljava/lang/Object;I)V");
+            methodId_UploaderListener_onPlfUploadProgress = (*env)->GetMethodID(env, classUploaderProgressListener, "onPlfUploadProgress", "(Ljava/lang/Object;F)V");
 
             if (methodId_UploaderListener_onPlfUploadProgress == NULL)
             {
@@ -243,7 +243,7 @@ int ARUPDATER_JNI_Uploader_NewListenersJNI(JNIEnv *env)
  * @retval void
  * @see ARUPDATER_JNI_Uploader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, uint8_t percent)
+void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, float percent)
 {
     ARUPDATER_JNI_UploaderCallbacks_t *callbacks = (ARUPDATER_JNI_UploaderCallbacks_t*)arg;
 

@@ -140,7 +140,7 @@ void ARUPDATER_JNI_Downloader_FreeListenersJNI(JNIEnv *env);
  * @retval void
  * @see ARUPDATER_JNI_Downloader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Downloader_ProgressCallback(void* arg, uint8_t percent);
+void ARUPDATER_JNI_Downloader_ProgressCallback(void* arg, float percent);
 
 /**
  * @brief Callback that give the download completion status
@@ -202,7 +202,7 @@ void ARUPDATER_JNI_Uploader_FreeListenersJNI(JNIEnv *env);
  * @retval void
  * @see ARUPDATER_JNI_Uploader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, uint8_t percent);
+void ARUPDATER_JNI_Uploader_ProgressCallback(void* arg, float percent);
 
 /**
  * @brief Callback that give the Up completion status
