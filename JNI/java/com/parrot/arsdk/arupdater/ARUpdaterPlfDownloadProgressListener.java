@@ -9,5 +9,5 @@ public interface ARUpdaterPlfDownloadProgressListener
      * @param progress the progress in percent
      * @return void
      */
-	void onPlfDownloadProgress(Object arg, int progress);
+	void onPlfDownloadProgress(Object arg, float progress);
 }
