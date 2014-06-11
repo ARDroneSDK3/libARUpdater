@@ -507,12 +507,24 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         error = ARUPDATER_ERROR_NOT_INITIALIZED;
     }
 
-    int shouldDownload = manager->downloader->updateHasBeenChecked;
+    int shouldDownload = 0;
     
-    // if the check has not already been done, do it
-    if ((error == ARUPDATER_OK) && manager->downloader->updateHasBeenChecked == 0)
+    if (error == ARUPDATER_OK)
     {
-        shouldDownload = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
+        // if the check has not already been done, do it
+        if (manager->downloader->updateHasBeenChecked == 0)
+        {
+            int nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
+            if (nbDownloadsToDo > 0)
+            {
+                shouldDownload = 1;
+            }
+        }
+        else
+        {
+            shouldDownload = 1;
+        }
+        
     }
     
     
@@ -692,6 +704,21 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         {
             free(plfFolder);
             plfFolder = NULL;
+        }
+    }
+    
+    // delete the content of the downloadInfos
+    if (ARUPDATER_OK == error)
+    {
+        manager->downloader->updateHasBeenChecked = 0;
+        int product = 0;
+        for (product = 0; product < ARDISCOVERY_PRODUCT_MAX; product++)
+        {
+            ARUPDATER_DownloadInformation_t *downloadInfo = manager->downloader->downloadInfos[product];
+            if (downloadInfo != NULL)
+            {
+                ARUPDATER_DownloadInformation_Delete(&downloadInfo);
+            }
         }
     }
     

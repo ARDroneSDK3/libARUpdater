@@ -76,7 +76,7 @@ void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg);
  * @brief Check if updates are available synchrounously
  * @param manager : pointer on the manager
  * @param[out] err : The error status. Can be null.
- * @return The number of plf file chich need to be updated
+ * @return The number of plf file which need to be updated
  */
 int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err);
 
