@@ -47,7 +47,7 @@
  *
  *****************************************/
 
-void test_http_progress_callback(void* arg, uint8_t percent)
+void test_http_progress_callback(void* arg, float percent)
 {
     char *message = (char *)arg;
     if ((percent == 5) ||
@@ -56,15 +56,15 @@ void test_http_progress_callback(void* arg, uint8_t percent)
         (percent == 80) ||
         (percent == 99))
     {
-        printf("%s %d%%\n", message ? message : "null", percent);
+        printf("%s %f%%\n", message ? message : "null", percent);
     }
 }
 
-void test_http_should_download_callback(void* arg, int shouldDownload)
+void test_http_should_download_callback(void* arg, int nbDownload)
 {
-    if (shouldDownload == 1)
+    if (nbDownload > 0)
     {
-        fprintf(stderr, "I should download the plf file\n");
+        fprintf(stderr, "I should download %i plf file\n", nbDownload);
     }
     else
     {
@@ -84,7 +84,7 @@ void test_http_download_completion_callback(void* arg, eARUPDATER_ERROR error)
     }
 }
 
-void test_ftp_upload_callback(void* arg, eARDATATRANSFER_ERROR error)
+void test_ftp_upload_callback(void* arg, eARUPDATER_ERROR error)
 {
     if (error == ARDATATRANSFER_OK)
     {
