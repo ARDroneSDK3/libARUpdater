@@ -171,6 +171,45 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     return result;
 }
 
+/**
+ * @brief Check if updates are available asynchrounously
+ * @post call ARUPDATER_Downloader_ShouldDownloadPlfCallback_t at the end of the execution
+ * @param managerArg : thread data of type ARUPDATER_Manager_t*
+ * @return ARUPDATER_OK int value if operation went well, a description of the error (error value) otherwise.
+ */
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeCheckUpdatesAsync(JNIEnv *env, jobject jThis, jlong jManager)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    result = (eARUPDATER_ERROR)ARUPDATER_Downloader_CheckUpdatesAsync(nativeManager);
+    return result;
+}
+
+/**
+ * @brief Check if updates are available synchrounously
+ * @param manager : pointer on the manager
+ * @param[out] err : The error status. Can be null.
+ * @return The number of plf file chich need to be updated
+ */
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeCheckUpdatesSync(JNIEnv *env, jobject jThis, jlong jManager)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    int nbPlfToBeUploaded = 0;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+    nbPlfToBeUploaded = ARUPDATER_Downloader_CheckUpdatesSync(nativeManager, &result);
+    if (result != ARUPDATER_OK)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error during ARUPDATER_Downloader_CheckUpdatesSync: %d", result);
+        ARUPDATER_JNI_Manager_ThrowARUpdaterException(env, result);
+    }
+    return nbPlfToBeUploaded;
+}
+
 
 /**
  * @brief Get the ARUpdaterShouldDownloadPlfListener, ARUpdaterPlfDownloadProgressListener and ARUpdaterPlfDownloadCompletionListener JNI classes
@@ -257,7 +296,7 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
 
         if (error == JNI_OK)
         {
-            methodId_DownloaderListener_downloadPlf = (*env)->GetMethodID(env, classDownloaderShouldDownloadListener, "downloadPlf", "(Ljava/lang/Object;Z)V");
+            methodId_DownloaderListener_downloadPlf = (*env)->GetMethodID(env, classDownloaderShouldDownloadListener, "downloadPlf", "(Ljava/lang/Object;I)V");
 
             if (methodId_DownloaderListener_downloadPlf == NULL)
             {
@@ -400,15 +439,15 @@ void ARUPDATER_JNI_Downloader_CompletionCallback(void* arg, eARUPDATER_ERROR nat
 /**
  * @brief Callback that indicates if a plf should be download
  * @param arg The arg
- * @param shouldDownload 1 if a plf should be downloaded, else 0
+ * @param nbPlfToBeUploaded : number of plf which are out to date
  * @retval void
  * @see ARUPDATER_JNI_Downloader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int shouldDownload)
+void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUploaded)
 {
     ARUPDATER_JNI_DownloaderCallbacks_t *callbacks = (ARUPDATER_JNI_DownloaderCallbacks_t*)arg;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%d %x", shouldDownload, (int)arg);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%d %x", nbPlfToBeUploaded, (int)arg);
 
     if (callbacks != NULL)
     {
@@ -434,7 +473,7 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int shouldDownlo
 
             if ((error == JNI_OK) && (env != NULL) && (callbacks->jDownloadListener != NULL) && (methodId_DownloaderListener_downloadPlf != NULL))
             {
-                (*env)->CallVoidMethod(env, callbacks->jDownloadListener, methodId_DownloaderListener_downloadPlf, callbacks->jDownloadArgs, (jboolean)shouldDownload);
+                (*env)->CallVoidMethod(env, callbacks->jDownloadListener, methodId_DownloaderListener_downloadPlf, callbacks->jDownloadArgs, nbPlfToBeUploaded);
             }
 
             if ((env != NULL) && (jMedia != NULL))
