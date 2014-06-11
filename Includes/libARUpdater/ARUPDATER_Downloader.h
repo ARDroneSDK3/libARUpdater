@@ -16,9 +16,9 @@ typedef struct ARUPDATER_Downloader_t ARUPDATER_Downloader_t;
 /**
  * @brief Whether the plf file should be updated or not
  * @param arg The pointer of the user custom argument
- * @param shouldDownload 1 if the plf file should be downloaded, 0 otherwise
+ * @param nbPlfToBeUploaded : number of plf which are out to date
  */
-typedef void (*ARUPDATER_Downloader_ShouldDownloadPlfCallback_t) (void* arg, int shouldDownload);
+typedef void (*ARUPDATER_Downloader_ShouldDownloadPlfCallback_t) (void* arg, int nbPlfToBeUploaded);
 
 /**
  * @brief Progress callback of the plf download
@@ -65,20 +65,36 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
 eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager);
 
 /**
+ * @brief Check if updates are available asynchrounously
+ * @post call ARUPDATER_Downloader_ShouldDownloadPlfCallback_t at the end of the execution
+ * @param managerArg : thread data of type ARUPDATER_Manager_t*
+ * @return ARUPDATER_OK if operation went well, a description of the error otherwise. Casted into a void*
+ */
+void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg);
+
+/**
+ * @brief Check if updates are available synchrounously
+ * @param manager : pointer on the manager
+ * @param[out] err : The error status. Can be null.
+ * @return The number of plf file chich need to be updated
+ */
+int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err);
+
+/**
  * @brief Download all plf if needed
  * @warning This function must be called in its own thread.
- * @post ARUPDATER_Downloader_CancelThread() must be called after.
+ * @post ARUPDATER_Downloader_CancelDownloadThread() must be called after.
  * @param managerArg : thread data of type ARUPDATER_Manager_t*
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
- * @see ARUPDATER_Downloader_CancelThread()
+ * @see ARUPDATER_Downloader_CancelDownloadThread()
  */
 void* ARUPDATER_Downloader_ThreadRun(void *managerArg);
 
 /**
  * @brief cancel the update
- * @details Used to kill the thread calling ARUPDATER_Downloader_ThreadRun().
+ * @details Used to kill the thread calling ARUPDATER_Downloader_DownloadThreadRun().
  * @param manager : pointer on the manager
- * @see ARUPDATER_Downloader_ThreadRun()
+ * @see ARUPDATER_Downloader_DownloadThreadRun()
  */
 eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager);
 

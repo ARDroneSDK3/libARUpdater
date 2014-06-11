@@ -12,16 +12,18 @@ HEADER_FILES                                                =   ../Includes/libA
 
 # The sources to add to the library and to add to the source distribution
 SOURCE_FILES                                                =   $(HEADER_FILES)\
-                                                                ../Sources/ARUPDATER_Manager.c      \
-                                                                ../Sources/ARUPDATER_Manager.h      \
-                                                                ../Sources/ARUPDATER_Downloader.c   \
-                                                                ../Sources/ARUPDATER_Downloader.h   \
-                                                                ../Sources/ARUPDATER_Uploader.c     \
-                                                                ../Sources/ARUPDATER_Uploader.h     \
-                                                                ../Sources/ARUPDATER_Plf.c          \
-                                                                ../Sources/ARUPDATER_Plf.h          \
-                                                                ../Sources/ARUPDATER_Utils.c        \
-                                                                ../Sources/ARUPDATER_Utils.h        \
+                                                                ../Sources/ARUPDATER_Manager.c                  \
+                                                                ../Sources/ARUPDATER_Manager.h                  \
+                                                                ../Sources/ARUPDATER_Downloader.c               \
+                                                                ../Sources/ARUPDATER_Downloader.h               \
+                                                                ../Sources/ARUPDATER_Uploader.c                 \
+                                                                ../Sources/ARUPDATER_Uploader.h                 \
+                                                                ../Sources/ARUPDATER_Plf.c                      \
+                                                                ../Sources/ARUPDATER_Plf.h                      \
+                                                                ../Sources/ARUPDATER_Utils.c                    \
+                                                                ../Sources/ARUPDATER_Utils.h                    \
+                                                                ../Sources/ARUPDATER_DownloadInformation.c      \
+                                                                ../Sources/ARUPDATER_DownloadInformation.h      \
                                                                 ../Sources/ARUPDATER_Error.c
                                 
 if HAVE_OBJECTIVE_C

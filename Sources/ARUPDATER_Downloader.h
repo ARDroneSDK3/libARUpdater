@@ -12,6 +12,7 @@
 #include <libARUpdater/ARUPDATER_Error.h>
 #include <libARUpdater/ARUPDATER_Downloader.h>
 #include <libARSAL/ARSAL_Mutex.h>
+#include "ARUPDATER_DownloadInformation.h"
 
 struct ARUPDATER_Downloader_t
 {
@@ -23,6 +24,9 @@ struct ARUPDATER_Downloader_t
     
     int isRunning;
     int isCanceled;
+    
+    int updateHasBeenChecked;
+    ARUPDATER_DownloadInformation_t **downloadInfos;
     
     ARSAL_MD5_Manager_t *md5Manager;
     
