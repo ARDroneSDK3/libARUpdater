@@ -22,7 +22,8 @@
  *****************************************/
 #define ARUPDATER_UPLOADER_TAG                   "ARUPDATER_Uploader"
 #define ARUPDATER_UPLOADER_REMOTE_FOLDER         "/"
-#define ARUPDATER_UPLOADER_MD5_FILENAME          "md5_check.txt"
+#define ARUPDATER_UPLOADER_MD5_FILENAME          "md5_check.md5"
+#define ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX  ".tmp"
 #define ARUPDATER_UPLOADER_CHUNK_SIZE            32
 /* ***************************************
  *
@@ -188,7 +189,8 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
 
     char *sourceFileFolder = NULL;
     char *sourceFilePath = NULL;
-    char *destFilePath = NULL;
+    char *tmpDestFilePath = NULL;
+    char *finalDestFilePath = NULL;
     char *device = NULL;
     char *fileName = NULL;
     char *md5Txt = NULL;
@@ -210,9 +212,14 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     
     if (error == ARUPDATER_OK)
     {
-        destFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + 1);
-        strcpy(destFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-        strcat(destFilePath, fileName);
+        tmpDestFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + strlen(ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX) + 1);
+        strcpy(tmpDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+        strcat(tmpDestFilePath, fileName);
+        strcat(tmpDestFilePath, ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX);
+        
+        finalDestFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + 1);
+        strcpy(finalDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+        strcat(finalDestFilePath, fileName);
         
         sourceFilePath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
         strcpy(sourceFilePath, sourceFileFolder);
@@ -383,7 +390,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     // create a new uploader
     if (ARUPDATER_OK == error)
     {
-        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, destFilePath, sourceFilePath, ARUPDATER_Uploader_ProgressCallback, manager, ARUPDATER_Uploader_CompletionCallback, manager, resumeMode);
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, tmpDestFilePath, sourceFilePath, ARUPDATER_Uploader_ProgressCallback, manager, ARUPDATER_Uploader_CompletionCallback, manager, resumeMode);
         if (ARDATATRANSFER_OK != dataTransferError)
         {
             error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
@@ -402,6 +409,13 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
             error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
         }
     }
+    
+    // rename the plf file if the operation went well
+    if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
+    {
+        ARDATATRANSFER_Uploader_Rename(manager->uploader->dataTransferManager, tmpDestFilePath, finalDestFilePath);
+    }
+    
     
     ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
     if (ARUPDATER_OK == error)
@@ -443,9 +457,13 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     {
         free(fileName);
     }
-    if (destFilePath != NULL)
+    if (tmpDestFilePath != NULL)
     {
-        free(destFilePath);
+        free(tmpDestFilePath);
+    }
+    if (finalDestFilePath != NULL)
+    {
+        free(finalDestFilePath);
     }
     
     if ((manager != NULL) && (manager->uploader != NULL))
