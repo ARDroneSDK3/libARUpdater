@@ -190,6 +190,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
                     if (downloadInfo != NULL)
                     {
                         ARUPDATER_DownloadInformation_Delete(&downloadInfo);
+                        manager->downloader->downloadInfos[product] = NULL;
                     }
                 }
                 free(manager->downloader->downloadInfos);
@@ -397,6 +398,10 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
             {
                 nbUpdatesToDownload++;
+                char *downloadUrl = strtok(NULL, "|");
+                char *remoteMD5 = strtok(NULL, "|");
+                
+                manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, product, &error);
             }
             else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
@@ -407,14 +412,6 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
                 // if result is different from OK, it is an error
                 error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
             }
-        }
-        
-        if (error == ARUPDATER_OK)
-        {
-            char *downloadUrl = strtok(NULL, "|");
-            char *remoteMD5 = strtok(NULL, "|");
-            
-            manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, product, &error);
         }
         
         if (deviceFolder != NULL)
@@ -557,7 +554,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             ARUPDATER_DownloadInformation_t *downloadInfo = manager->downloader->downloadInfos[product];
             if (downloadInfo != NULL)
             {
-                char *downloadUrl = downloadInfo->downloadUrl;
+                const char *const downloadUrl = downloadInfo->downloadUrl;
                 char *remoteMD5 = downloadInfo->md5Expected;
                 char *downloadEndUrl;
                 char *downloadServer;
@@ -586,7 +583,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 // construct the url
                 if (error == ARUPDATER_OK)
                 {
-                    char *urlWithoutHttpHeader = downloadUrl + strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER);
+                    const char *const urlWithoutHttpHeader = downloadUrl + strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER);
                     const char delimiter = '/';
                     
                     downloadEndUrl = strchr(urlWithoutHttpHeader, delimiter);
@@ -718,6 +715,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             if (downloadInfo != NULL)
             {
                 ARUPDATER_DownloadInformation_Delete(&downloadInfo);
+                manager->downloader->downloadInfos[product] = NULL;
             }
         }
     }

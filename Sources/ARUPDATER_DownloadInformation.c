@@ -97,11 +97,13 @@ void ARUPDATER_DownloadInformation_Delete(ARUPDATER_DownloadInformation_t **down
             if (downloadInfoPtr->downloadUrl != NULL)
             {
                 free(downloadInfoPtr->downloadUrl);
+                downloadInfoPtr->downloadUrl = NULL;
             }
             
             if (downloadInfoPtr->md5Expected != NULL)
             {
                 free(downloadInfoPtr->md5Expected);
+                downloadInfoPtr->md5Expected = NULL;
             }
             
             
