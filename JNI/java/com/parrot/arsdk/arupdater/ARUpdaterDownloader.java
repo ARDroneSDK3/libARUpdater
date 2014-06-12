@@ -19,6 +19,8 @@ public class ARUpdaterDownloader
     private native int nativeDelete(long manager);
     private native void nativeThreadRun (long manager);
     private native int nativeCancelThread (long manager);
+    private native int nativeCheckUpdatesAsync(long manager);
+    private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
 
     private long nativeManager = 0;
     private Runnable downloaderRunnable = null;
@@ -138,5 +140,26 @@ public class ARUpdaterDownloader
         return runnable;
     }
 
+    /**
+     * Use this to check asynchronously update from internet (must be called from a background thread)
+     * The ARUpdaterPlfShouldDownloadPlfListener callback set in the 'createUpdaterDownloader' method will be called
+     */
+    public ARUPDATER_ERROR_ENUM checkUpdatesAsync()
+    {
+        int result = nativeCheckUpdatesAsync(nativeManager);
 
+        ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
+
+        return error;
+    }
+
+    /**
+     * Use this to check synchronously update from internet
+     */
+    public int checkUpdatesSync() throws ARUpdaterException
+    {
+        int nbPlfToBeUpdated = nativeCheckUpdatesSync(nativeManager);
+
+        return nbPlfToBeUpdated;
+    }
 }

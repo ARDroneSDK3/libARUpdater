@@ -17,6 +17,7 @@ public class ARUpdaterManager
     private native int nativeNew() throws ARUpdaterException;
     private native int nativeDelete(long manager);
     private native boolean nativePlfVersionIsUpToDate(long manager, String rootFolder, int discoveryProduct, int version, int edition, int extension) throws ARUpdaterException;
+    private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
 
     private long nativeManager = 0;
     private boolean isInit = false;
@@ -146,6 +147,11 @@ public class ARUpdaterManager
     public boolean isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension) throws ARUpdaterException
     {
         return nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
+    }
+
+    public boolean isPlfVersionBlacklisted(ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension)
+    {
+        return nativePlfVersionIsBlacklisted(product.getValue(), version, edition, extension);
     }
 
 }
