@@ -24,10 +24,8 @@
  *****************************************/
 #define ARUPDATER_DOWNLOADER_TAG   "ARUPDATER_Downloader"
 
-//#define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
-//#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
-#define ARUPDATER_DOWNLOADER_SERVER_URL                    "172.20.5.165"
-#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "~d.bertrand/Drones/"
+#define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
+#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
 #define ARUPDATER_DOWNLOADER_PHP_URL                       "/update.php"
 #define ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH              255
 #define ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT     10
@@ -42,8 +40,8 @@
 #define ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE          "0000"
 
 #define ARUPDATER_DOWNLOADER_PHP_ERROR_OK                       "0"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE                   "1"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_APP_VERSION_OUT_TO_DATE  "4"
+#define ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE                   "5"
+#define ARUPDATER_DOWNLOADER_PHP_ERROR_APP_VERSION_OUT_TO_DATE  "3"
 
 #define ARUPDATER_DOWNLOADER_CHUNK_SIZE                    255
 #define ARUPDATER_DOWNLOADER_MD5_TXT_SIZE                  32
