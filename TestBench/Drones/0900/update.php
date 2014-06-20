@@ -340,7 +340,7 @@ function main()
 	}
 	
 	// check app version
-	if ($error == ERROR_OK)
+	if (($error == ERROR_OK) && isset($_GET["platform"]) && isset($_GET["appVersion"]))
 	{
 		$error = checkAppVersion($platform, $appVersion);
 	}
