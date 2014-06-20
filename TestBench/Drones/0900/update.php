@@ -24,7 +24,7 @@ define ("TOKEN", "|");
 define ("DEBUG", FALSE);
 //define ("DEBUG", TRUE);
 
-$firstSupportedVersionArray = ['ANDROID' => '0.0.0', 'IOS' => '0.0.0']; // available app platforms
+$firstSupportedVersionArray = array('ANDROID' => '0.0.0', 'IOS' => '0.0.0'); // available app platforms
 
 function sendErrorResponse($code, $errorMsg)
 {
