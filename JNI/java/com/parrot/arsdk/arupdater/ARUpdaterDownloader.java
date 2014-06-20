@@ -13,7 +13,7 @@ public class ARUpdaterDownloader
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, long md5Manager, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
+    private native int nativeNew(long manager, String rootFolder, long md5Manager, int platform, String appVersion, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
     	ARUpdaterPlfDownloadProgressListener plfDownloadProgressListener, Object progressArgs, 
     	ARUpdaterPlfDownloadCompletionListener plfDownloadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
@@ -55,11 +55,11 @@ public class ARUpdaterDownloader
      * @return void
      * @throws ARUpdaterException if error
      */
-    public void createUpdaterDownloader(String rootFolder, ARSALMd5Manager md5Manager, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
+    public void createUpdaterDownloader(String rootFolder, ARSALMd5Manager md5Manager, String appVersion, ARUpdaterShouldDownloadPlfListener shouldDownloadPlfListener, Object downloadArgs, 
     	ARUpdaterPlfDownloadProgressListener plfDownloadProgressListener, Object progressArgs, 
     	ARUpdaterPlfDownloadCompletionListener plfDownloadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
-    	int result = nativeNew(nativeManager, rootFolder, md5Manager.getNativeManager(), shouldDownloadPlfListener, downloadArgs, plfDownloadProgressListener, progressArgs, plfDownloadCompletionListener, completionArgs);
+    	int result = nativeNew(nativeManager, rootFolder, md5Manager.getNativeManager(),  ARUPDATER_Downloader_Platforms_ENUM.ARUPDATER_DOWNLOADER_ANDROID_PLATFORM.getValue(), appVersion, shouldDownloadPlfListener, downloadArgs, plfDownloadProgressListener, progressArgs, plfDownloadCompletionListener, completionArgs);
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 

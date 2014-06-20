@@ -18,6 +18,9 @@ struct ARUPDATER_Downloader_t
 {
     char *rootFolder;
     
+    eARUPDATER_Downloader_Platforms appPlatform;
+    char *appVersion;
+    
     void *downloadArg;
     void *progressArg;
     void *completionArg;
@@ -40,5 +43,6 @@ struct ARUPDATER_Downloader_t
     ARUPDATER_Downloader_PlfDownloadCompletionCallback_t plfDownloadCompletionCallback;
 };
 
+char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platform);
 
 #endif

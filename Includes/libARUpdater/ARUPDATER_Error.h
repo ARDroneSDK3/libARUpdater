@@ -29,6 +29,8 @@ typedef enum
     ARUPDATER_ERROR_DOWNLOADER = -3000,                    /**< Generic Updater error */
     ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR,              /**< error on a ARUtils operation */
     ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD,                   /**< error downloading a file */
+    ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR,             /**< error on a platform name */
+    ARUPDATER_ERROR_DOWNLOADER_PHP_APP_OUT_TO_DATE_ERROR,  /**< This app version is out to date */
     ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR,                  /**< error given by the PHP script on server */
     ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE,                /**< error when renaming files */
     ARUPDATER_ERROR_DOWNLOADER_FILE_NOT_FOUND,             /**< Plf file not found in the downloader */

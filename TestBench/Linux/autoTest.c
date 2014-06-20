@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     
     if(error == ARUPDATER_OK)
     {
-        error =  ARUPDATER_Downloader_New(manager, "./test", md5Manager, test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
+        error =  ARUPDATER_Downloader_New(manager, "./test", md5Manager, ARUPDATER_DOWNLOADER_ANDROID_PLATFORM, "3.0.1",test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
         
         if (error == ARUPDATER_OK)
         {

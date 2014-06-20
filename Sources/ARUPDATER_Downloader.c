@@ -24,25 +24,26 @@
  *****************************************/
 #define ARUPDATER_DOWNLOADER_TAG   "ARUPDATER_Downloader"
 
-#define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
-#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
+//#define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
+//#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
+#define ARUPDATER_DOWNLOADER_SERVER_URL                    "172.20.5.165"
+#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "~d.bertrand/Drones/"
 #define ARUPDATER_DOWNLOADER_PHP_URL                       "/update.php"
 #define ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH              255
 #define ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT     10
 #define ARUPDATER_DOWNLOADER_PRODUCT_PARAM                 "?product="
 #define ARUPDATER_DOWNLOADER_SERIAL_PARAM                  "&serialNo="
 #define ARUPDATER_DOWNLOADER_VERSION_PARAM                 "&version="
+#define ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM            "&platform="
+#define ARUPDATER_DOWNLOADER_APP_VERSION_PARAM             "&appVersion="
 #define ARUPDATER_DOWNLOADER_VERSION_SEPARATOR             "."
 #define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX        "tmp_"
 #define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX        ".tmp"
 #define ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE          "0000"
 
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_OK                  "0"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_UNKNOWN             "1"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_FILE                "2"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_PLF                 "3"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_MAGIC_PLF           "4"
-#define ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE              "5"
+#define ARUPDATER_DOWNLOADER_PHP_ERROR_OK                       "0"
+#define ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE                   "1"
+#define ARUPDATER_DOWNLOADER_PHP_ERROR_APP_VERSION_OUT_TO_DATE  "4"
 
 #define ARUPDATER_DOWNLOADER_CHUNK_SIZE                    255
 #define ARUPDATER_DOWNLOADER_MD5_TXT_SIZE                  32
@@ -50,19 +51,22 @@
 
 #define ARUPDATER_DOWNLOADER_HTTP_HEADER                   "http://"
 
+#define ARUPDATER_DOWNLOADER_ANDROID_PLATFORM_NAME         "Android"
+#define ARUPDATER_DOWNLOADER_IOS_PLATFORM_NAME             "iOS"
+
 /* ***************************************
  *
  *             function implementation :
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, eARUPDATER_Downloader_Platforms appPlatform, const char* const appVersion, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Downloader_t *downloader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
 
     // Check parameters
-    if ((manager == NULL) || (rootFolder == NULL) || (md5Manager == NULL))
+    if ((manager == NULL) || (rootFolder == NULL) || (md5Manager == NULL) || (appVersion == NULL))
     {
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
@@ -105,6 +109,10 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         {
             strcat(downloader->rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
         }
+        
+        downloader->appPlatform = appPlatform;
+        downloader->appVersion = malloc(strlen(appVersion)+1);
+        strcpy(downloader->appVersion, appVersion);
         
         downloader->md5Manager = md5Manager;
 
@@ -183,6 +191,8 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
 
                 free(manager->downloader->rootFolder);
                 
+                free(manager->downloader->appVersion);
+                
                 int product = 0;
                 for (product = 0; product < ARDISCOVERY_PRODUCT_MAX; product++)
                 {
@@ -234,10 +244,20 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     char **dataPtr = NULL;
     char *data;
     ARSAL_Sem_t requestSem;
+    char *platform = NULL;
     
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
     strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+    
+    if (error == ARUPDATER_OK)
+    {
+        platform = ARUPDATER_Downloader_GetPlatformName(manager->downloader->appPlatform);
+        if (platform == NULL)
+        {
+            error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
+        }
+    }
     
     int product = 0;
     while ((error == ARUPDATER_OK) && (product < ARDISCOVERY_PRODUCT_MAX) && (manager->downloader->isCanceled == 0))
@@ -331,21 +351,27 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             char buffer[ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT];
             // create the url params
             char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
-            strncpy(params, ARUPDATER_DOWNLOADER_PRODUCT_PARAM, strlen(ARUPDATER_DOWNLOADER_PRODUCT_PARAM));
-            strncat(params, device, strlen(device));
+            strcpy(params, ARUPDATER_DOWNLOADER_PRODUCT_PARAM);
+            strcat(params, device);
             
-            strncat(params, ARUPDATER_DOWNLOADER_SERIAL_PARAM, strlen(ARUPDATER_DOWNLOADER_SERIAL_PARAM));
-            strncat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE, strlen(ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE));
+            strcat(params, ARUPDATER_DOWNLOADER_SERIAL_PARAM);
+            strcat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE);
             
-            strncat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM, strlen(ARUPDATER_DOWNLOADER_VERSION_PARAM));
+            strcat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM);
             sprintf(buffer,"%i",version);
             strncat(params, buffer, strlen(buffer));
-            strncat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR, strlen(ARUPDATER_DOWNLOADER_VERSION_SEPARATOR));
+            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
             sprintf(buffer,"%i",edit);
             strncat(params, buffer, strlen(buffer));
-            strncat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR, strlen(ARUPDATER_DOWNLOADER_VERSION_SEPARATOR));
+            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
             sprintf(buffer,"%i",ext);
             strncat(params, buffer, strlen(buffer));
+            
+            strcat(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM);
+            strcat(params, platform);
+            
+            strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
+            strcat(params, manager->downloader->appVersion);
             
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
@@ -407,9 +433,12 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             {
                 manager->downloader->downloadInfos[product] = NULL;
             }
+            else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_APP_VERSION_OUT_TO_DATE) == 0)
+            {
+                error = ARUPDATER_ERROR_DOWNLOADER_PHP_APP_OUT_TO_DATE_ERROR;
+            }
             else
             {
-                // if result is different from OK, it is an error
                 error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
             }
         }
@@ -521,7 +550,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         {
             shouldDownload = 1;
         }
-        
+
     }
     
     
@@ -807,4 +836,21 @@ int ARUPDATER_Downloader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATE
     }
     
     return isRunning;
+}
+
+char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platform)
+{
+    char *toReturn = NULL;
+    switch (platform)
+    {
+        case ARUPDATER_DOWNLOADER_ANDROID_PLATFORM :
+            toReturn = ARUPDATER_DOWNLOADER_ANDROID_PLATFORM_NAME;
+            break;
+        case ARUPDATER_DOWNLOADER_IOS_PLATFORM :
+            toReturn = ARUPDATER_DOWNLOADER_IOS_PLATFORM_NAME;
+        default:
+            break;
+    }
+    
+    return toReturn;
 }

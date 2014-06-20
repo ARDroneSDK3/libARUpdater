@@ -56,7 +56,7 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_n
     return jret;
 }
 
-JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jMD5Manager, jobject jDownloadListener, jobject jDownloadArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jMD5Manager, jint jPlatform, jstring jAppVersion, jobject jDownloadListener, jobject jDownloadArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     ARSAL_MD5_Manager_t *nativeMD5Manager = (ARSAL_MD5_Manager_t*)(intptr_t)jMD5Manager;
@@ -109,6 +109,8 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     
     const char *rootFolder = (*env)->GetStringUTFChars(env, jRootFolder, 0);
 
+    const char *appVersion = (*env)->GetStringUTFChars(env, jAppVersion, 0);
+
     if (error != JNI_OK)
     {
         result = ARUPDATER_ERROR_SYSTEM;
@@ -116,7 +118,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Downloader_New(nativeManager, rootFolder, nativeMD5Manager, ARUPDATER_JNI_Downloader_ShouldDownloadCallback, callbacks, ARUPDATER_JNI_Downloader_ProgressCallback, callbacks, ARUPDATER_JNI_Downloader_CompletionCallback, callbacks);
+        result = ARUPDATER_Downloader_New(nativeManager, rootFolder, nativeMD5Manager, jPlatform, appVersion, ARUPDATER_JNI_Downloader_ShouldDownloadCallback, callbacks, ARUPDATER_JNI_Downloader_ProgressCallback, callbacks, ARUPDATER_JNI_Downloader_CompletionCallback, callbacks);
     }
 
     if ((result != ARUPDATER_OK) && (callbacks != NULL))
@@ -127,6 +129,11 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     if (rootFolder != NULL)
     {
         (*env)->ReleaseStringUTFChars(env, jRootFolder, rootFolder);
+    }
+
+    if (appVersion != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jAppVersion, appVersion);
     }
 
     return result;
