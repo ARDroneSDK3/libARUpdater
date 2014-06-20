@@ -303,7 +303,7 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
 
         if (error == JNI_OK)
         {
-            methodId_DownloaderListener_downloadPlf = (*env)->GetMethodID(env, classDownloaderShouldDownloadListener, "downloadPlf", "(Ljava/lang/Object;I)V");
+            methodId_DownloaderListener_downloadPlf = (*env)->GetMethodID(env, classDownloaderShouldDownloadListener, "downloadPlf", "(Ljava/lang/Object;ILcom/parrot/arsdk/arupdater/ARUPDATER_ERROR_ENUM;)V");
 
             if (methodId_DownloaderListener_downloadPlf == NULL)
             {
@@ -450,7 +450,7 @@ void ARUPDATER_JNI_Downloader_CompletionCallback(void* arg, eARUPDATER_ERROR nat
  * @retval void
  * @see ARUPDATER_JNI_Downloader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUploaded)
+void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUploaded, eARUPDATER_ERROR nativeError)
 {
     ARUPDATER_JNI_DownloaderCallbacks_t *callbacks = (ARUPDATER_JNI_DownloaderCallbacks_t*)arg;
 
@@ -463,6 +463,7 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUpl
             JNIEnv *env = NULL;
             jint jResultEnv = 0;
             jobject jMedia = NULL;
+            jobject jError = NULL;
             int error = JNI_OK;
 
             jResultEnv = (*ARUPDATER_JNI_Manager_VM)->GetEnv(ARUPDATER_JNI_Manager_VM, (void **) &env, JNI_VERSION_1_6);
@@ -477,11 +478,28 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUpl
                 error = JNI_FAILED;
                 ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error no env");
             }
+            
+            if (error == JNI_OK)
+            {
+                jError = ARUPDATER_JNI_Manager_NewERROR_ENUM(env, nativeError);
+                
+                if (jError == NULL)
+                {
+                    error = JNI_FAILED;
+                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %x", error, jError);
+                }
+            }
 
             if ((error == JNI_OK) && (env != NULL) && (callbacks->jDownloadListener != NULL) && (methodId_DownloaderListener_downloadPlf != NULL))
             {
-                (*env)->CallVoidMethod(env, callbacks->jDownloadListener, methodId_DownloaderListener_downloadPlf, callbacks->jDownloadArgs, nbPlfToBeUploaded);
+                (*env)->CallVoidMethod(env, callbacks->jDownloadListener, methodId_DownloaderListener_downloadPlf, callbacks->jDownloadArgs, nbPlfToBeUploaded, jError);
             }
+            
+            if ((env != NULL) && (jError != NULL))
+            {
+                (*env)->DeleteLocalRef(env, jError);
+            }
+
 
             if ((env != NULL) && (jMedia != NULL))
             {

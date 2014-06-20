@@ -60,15 +60,22 @@ void test_http_progress_callback(void* arg, float percent)
     }
 }
 
-void test_http_should_download_callback(void* arg, int nbDownload)
+void test_http_should_download_callback(void* arg, int nbDownload, eARUPDATER_ERROR error)
 {
-    if (nbDownload > 0)
+    if (error == ARUPDATER_OK)
     {
-        fprintf(stderr, "I should download %i plf file\n", nbDownload);
+        if (nbDownload > 0)
+        {
+            fprintf(stderr, "I should download %i plf file\n", nbDownload);
+        }
+        else
+        {
+            fprintf(stderr, "Plf File is up to date\n");
+        }
     }
-    else
+    else if(error == ARUPDATER_ERROR_DOWNLOADER_PHP_APP_OUT_TO_DATE_ERROR)
     {
-        fprintf(stderr, "Plf File is up to date\n");
+        fprintf(stderr, "This version is out of date\n");
     }
 }
 

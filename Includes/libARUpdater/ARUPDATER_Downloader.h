@@ -24,8 +24,9 @@ typedef struct ARUPDATER_Downloader_t ARUPDATER_Downloader_t;
  * @brief Whether the plf file should be updated or not
  * @param arg The pointer of the user custom argument
  * @param nbPlfToBeUploaded : number of plf which are out to date
+ * @param error The error status to indicate the plf check status
  */
-typedef void (*ARUPDATER_Downloader_ShouldDownloadPlfCallback_t) (void* arg, int nbPlfToBeUploaded);
+typedef void (*ARUPDATER_Downloader_ShouldDownloadPlfCallback_t) (void* arg, int nbPlfToBeUploaded, eARUPDATER_ERROR error);
 
 /**
  * @brief Progress callback of the plf download

@@ -158,7 +158,7 @@ void ARUPDATER_JNI_Downloader_CompletionCallback(void* arg, eARUPDATER_ERROR nat
  * @retval void
  * @see ARUPDATER_JNI_Downloader_FreeListenersJNI
  */
-void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int shouldDownload);
+void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int shouldDownload, eARUPDATER_ERROR nativeError);
 
 /**
  * @brief Free Callbacks structure

@@ -477,6 +477,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
+    int nbUpdatesToDownload = 0;
     
     ARUPDATER_Manager_t *manager = NULL;
     if (managerArg != NULL)
@@ -495,14 +496,12 @@ void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg)
 
     if (ARUPDATER_OK == error)
     {
-        int nbUpdatesToDownload = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
-        if (error == ARUPDATER_OK)
-        {
-            if (manager->downloader->shouldDownloadCallback != NULL)
-            {
-                manager->downloader->shouldDownloadCallback(manager->downloader->downloadArg, nbUpdatesToDownload);
-            }
-        }
+        nbUpdatesToDownload = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
+    }
+    
+    if ((manager != NULL) && (manager->downloader != NULL) && (manager->downloader->shouldDownloadCallback != NULL))
+    {
+        manager->downloader->shouldDownloadCallback(manager->downloader->downloadArg, nbUpdatesToDownload, error);
     }
     
     return (void*)error;
