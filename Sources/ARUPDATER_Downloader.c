@@ -15,7 +15,6 @@
 #include "ARUPDATER_Manager.h"
 #include "ARUPDATER_Downloader.h"
 #include "ARUPDATER_Utils.h"
-#include <libARDiscovery/ARDISCOVERY_Discovery.h>
 
 /* ***************************************
  *
@@ -58,7 +57,7 @@
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, eARUPDATER_Downloader_Platforms appPlatform, const char* const appVersion, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, eARUPDATER_Downloader_Platforms appPlatform, const char* const appVersion, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_WillDownloadPlfCallback_t willDownloadPlfCallback, void *willDownloadPlfArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Downloader_t *downloader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
@@ -83,7 +82,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
     {
         if (manager->downloader != NULL)
         {
-            err = ARUPDATER_ERROR_ALREADY_INITIALIZED;
+            err = ARUPDATER_ERROR_MANAGER_ALREADY_INITIALIZED;
         }
         else
         {
@@ -115,10 +114,12 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         downloader->md5Manager = md5Manager;
 
         downloader->downloadArg = downloadArg;
+        downloader->willDownloadPlfArg = willDownloadPlfArg;
         downloader->progressArg = progressArg;
         downloader->completionArg = completionArg;
 
         downloader->shouldDownloadCallback = shouldDownloadCallback;
+        downloader->willDownloadPlfCallback = willDownloadPlfCallback;
         downloader->plfDownloadProgressCallback = progressCallback;
         downloader->plfDownloadCompletionCallback = completionCallback;
 
@@ -174,7 +175,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
     {
         if (manager->downloader == NULL)
         {
-            error = ARUPDATER_ERROR_NOT_INITIALIZED;
+            error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
         }
         else
         {
@@ -223,7 +224,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     
     if (manager->downloader == NULL)
     {
-        error = ARUPDATER_ERROR_NOT_INITIALIZED;
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
     
     if (ARUPDATER_OK == error)
@@ -424,8 +425,15 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
                 nbUpdatesToDownload++;
                 char *downloadUrl = strtok(NULL, "|");
                 char *remoteMD5 = strtok(NULL, "|");
+                char *remoteSizeStr = strtok(NULL, "|");
+                int remoteSize = 0;
+                if (remoteSizeStr != NULL)
+                {
+                    remoteSize = atoi(remoteSizeStr);
+                }
+                char *remoteVersion = strtok(NULL, "|");
                 
-                manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, product, &error);
+                manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
             }
             else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
@@ -491,7 +499,7 @@ void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg)
     
     if ((manager == NULL) || (manager->downloader == NULL))
     {
-        error = ARUPDATER_ERROR_NOT_INITIALIZED;
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
 
     if (ARUPDATER_OK == error)
@@ -527,7 +535,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        error = ARUPDATER_ERROR_NOT_INITIALIZED;
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
 
     int shouldDownload = 0;
@@ -582,6 +590,13 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             {
                 const char *const downloadUrl = downloadInfo->downloadUrl;
                 char *remoteMD5 = downloadInfo->md5Expected;
+                char *remoteVersion = downloadInfo->plfVersion;
+                
+                if (manager->downloader->willDownloadPlfCallback != NULL)
+                {
+                    manager->downloader->willDownloadPlfCallback(manager->downloader->completionArg, product, remoteVersion);
+                }
+                
                 char *downloadEndUrl;
                 char *downloadServer;
                 char *downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
@@ -777,7 +792,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
 
     if ((error == ARUPDATER_OK) && (manager->downloader == NULL))
     {
-        error = ARUPDATER_ERROR_NOT_INITIALIZED;
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
 
     if (error == ARUPDATER_OK)
@@ -819,7 +834,7 @@ int ARUPDATER_Downloader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATE
     
     if ((err == ARUPDATER_OK) && (manager->downloader == NULL))
     {
-        err = ARUPDATER_ERROR_NOT_INITIALIZED;
+        err = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
     
     if (err == ARUPDATER_OK)

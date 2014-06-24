@@ -22,6 +22,7 @@ struct ARUPDATER_Downloader_t
     char *appVersion;
     
     void *downloadArg;
+    void *willDownloadPlfArg;
     void *progressArg;
     void *completionArg;
     
@@ -39,6 +40,7 @@ struct ARUPDATER_Downloader_t
     ARUTILS_Http_Connection_t *downloadConnection;
     
     ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback;
+    ARUPDATER_Downloader_WillDownloadPlfCallback_t willDownloadPlfCallback;
     ARUPDATER_Downloader_PlfDownloadProgressCallback_t plfDownloadProgressCallback;
     ARUPDATER_Downloader_PlfDownloadCompletionCallback_t plfDownloadCompletionCallback;
 };

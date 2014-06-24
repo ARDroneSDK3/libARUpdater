@@ -42,6 +42,9 @@ jmethodID methodId_UPDATER_ERROR_ENUM_getFromValue = NULL;
 jclass classDTERROR_ENUM = NULL;
 jmethodID methodId_DTERROR_ENUM_getFromValue = NULL;
 
+jclass classDISCOVERY_PRODUCT_ENUM = NULL;
+jmethodID methodId_DISCOVERY_PRODUCT_ENUM_getFromValue = NULL;
+
 /*****************************************
  *
  *             Private implementation:
@@ -154,13 +157,27 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
     eARUPDATER_ERROR result = ARUPDATER_OK;
     const char *rootFolder = (*env)->GetStringUTFChars(env, jRootFolder, 0);
 
+    jclass thisClass = (*env)->GetObjectClass(env, jThis);
+    jfieldID localVersionField = (*env)->GetFieldID(env, thisClass, "localVersion", "Ljava/lang/String;");
+    (*env)->DeleteLocalRef(env, thisClass);
+
+    int bufferSize = 16;
+    char *localVersionBuffer = malloc(bufferSize * sizeof(char));
+
     ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s %d %d %d %d", rootFolder, jProduct, jVersion, jEdition, jExtension);
 
-    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, rootFolder, (eARDISCOVERY_PRODUCT)jProduct, jVersion, jEdition, jExtension, &result);
+    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, rootFolder, (eARDISCOVERY_PRODUCT)jProduct, jVersion, jEdition, jExtension, localVersionBuffer, bufferSize, &result);
 
     if (rootFolder != NULL)
     {
         (*env)->ReleaseStringUTFChars(env, jRootFolder, rootFolder);
+    }
+
+    if (localVersionBuffer != NULL)
+    {
+        jstring jLocalVersion = (*env)->NewStringUTF(env, localVersionBuffer);
+        free(localVersionBuffer);
+        (*env)->SetObjectField(env, jThis, localVersionField, jLocalVersion);
     }
 
     if (result != ARUPDATER_OK)
@@ -508,5 +525,104 @@ jobject ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM(JNIEnv *env, eARDATATRA
     }
 
     return jERROR_ENUM;
+}
+
+/*************************************************
+    ARDISCOVERY Product enum generator
+**************************************************/
+
+int ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env)
+{
+    jclass locClassDISCOVERY_PRODUCT_ENUM = NULL;
+    int error = JNI_OK;
+
+    if (classDISCOVERY_PRODUCT_ENUM == NULL)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+
+        if (env == NULL)
+        {
+            error = JNI_FAILED;
+        }
+
+        if (error == JNI_OK)
+        {
+            locClassDISCOVERY_PRODUCT_ENUM = (*env)->FindClass(env, "com/parrot/arsdk/ardiscovery/ARDISCOVERY_PRODUCT_ENUM");
+
+            if (locClassDISCOVERY_PRODUCT_ENUM == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "ARDISCOVERY_PRODUCT_ENUM class not found");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            classDISCOVERY_PRODUCT_ENUM = (*env)->NewGlobalRef(env, locClassDISCOVERY_PRODUCT_ENUM);
+
+            if (classDISCOVERY_PRODUCT_ENUM == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "ARDISCOVERY_PRODUCT_ENUM global ref failed");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            methodId_DISCOVERY_PRODUCT_ENUM_getFromValue = (*env)->GetStaticMethodID(env, classDISCOVERY_PRODUCT_ENUM, "getFromValue", "(I)Lcom/parrot/arsdk/ardiscovery/ARDISCOVERY_PRODUCT_ENUM;");
+
+            if (methodId_DISCOVERY_PRODUCT_ENUM_getFromValue == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "getFromValue method not found");
+                error = JNI_FAILED;
+            }
+        }
+    }
+
+    return error;
+}
+
+void ARUPDATER_JNI_Manager_FreeDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env)
+{
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+
+    if (env != NULL)
+    {
+        if (classDISCOVERY_PRODUCT_ENUM != NULL)
+        {
+            (*env)->DeleteGlobalRef(env, classDISCOVERY_PRODUCT_ENUM);
+            classDISCOVERY_PRODUCT_ENUM = NULL;
+        }
+
+        methodId_DISCOVERY_PRODUCT_ENUM_getFromValue = NULL;
+    }
+}
+
+jobject ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM(JNIEnv *env, eARDISCOVERY_PRODUCT product)
+{
+    jobject jPRODUCT_ENUM = NULL;
+    jint jProduct;
+    int error = JNI_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%d", product);
+
+    if (env == NULL)
+    {
+       error = JNI_FAILED;
+    }
+
+    if (error == JNI_OK)
+    {
+        error = ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI(env);
+    }
+
+    if (error == JNI_OK)
+    {
+        jProduct = product;
+
+        jPRODUCT_ENUM = (*env)->CallStaticObjectMethod(env, classDISCOVERY_PRODUCT_ENUM, methodId_DISCOVERY_PRODUCT_ENUM_getFromValue, jProduct);
+    }
+
+    return jPRODUCT_ENUM;
 }
 

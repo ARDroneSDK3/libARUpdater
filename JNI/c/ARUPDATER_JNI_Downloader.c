@@ -27,6 +27,7 @@
 
 #define ARUPDATER_JNI_DOWNLOADER_TAG       "JNI"
 
+jmethodID methodId_DownloaderListener_willDownloadPlf = NULL;
 jmethodID methodId_DownloaderListener_onPlfDownloadProgress = NULL;
 jmethodID methodId_DownloaderListener_onPlfDownloadComplete = NULL;
 jmethodID methodId_DownloaderListener_downloadPlf = NULL;
@@ -56,7 +57,7 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_n
     return jret;
 }
 
-JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jMD5Manager, jint jPlatform, jstring jAppVersion, jobject jDownloadListener, jobject jDownloadArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jMD5Manager, jint jPlatform, jstring jAppVersion, jobject jDownloadListener, jobject jDownloadArgs, jobject jWillDownloadPlfListener, jobject jWillDownloadPlfArgs, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     ARSAL_MD5_Manager_t *nativeMD5Manager = (ARSAL_MD5_Manager_t*)(intptr_t)jMD5Manager;
@@ -81,6 +82,15 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
         if (jDownloadArgs != NULL)
         {
             callbacks->jDownloadArgs = (*env)->NewGlobalRef(env, jDownloadArgs);
+        }
+
+	if (jWillDownloadPlfListener != NULL)
+        {
+            callbacks->jWillDownloadPlfListener = (*env)->NewGlobalRef(env, jWillDownloadPlfListener);
+        }
+        if (jWillDownloadPlfArgs != NULL)
+        {
+            callbacks->jWillDownloadPlfArgs = (*env)->NewGlobalRef(env, jWillDownloadPlfArgs);
         }
 
         if (jProgressListener != NULL)
@@ -118,7 +128,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Downloader_New(nativeManager, rootFolder, nativeMD5Manager, jPlatform, appVersion, ARUPDATER_JNI_Downloader_ShouldDownloadCallback, callbacks, ARUPDATER_JNI_Downloader_ProgressCallback, callbacks, ARUPDATER_JNI_Downloader_CompletionCallback, callbacks);
+        result = ARUPDATER_Downloader_New(nativeManager, rootFolder, nativeMD5Manager, jPlatform, appVersion, ARUPDATER_JNI_Downloader_ShouldDownloadCallback, callbacks, ARUPDATER_JNI_Downloader_WillDownloadPlfCallback, callbacks, ARUPDATER_JNI_Downloader_ProgressCallback, callbacks, ARUPDATER_JNI_Downloader_CompletionCallback, callbacks);
     }
 
     if ((result != ARUPDATER_OK) && (callbacks != NULL))
@@ -226,6 +236,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
  */
 int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
 {
+    jclass classWillDownloadPlfListener = NULL;
     jclass classDownloaderProgressListener = NULL;
     jclass classDownloaderCompletionListener = NULL;
     jclass classDownloaderShouldDownloadListener = NULL;
@@ -236,6 +247,30 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
     if (env == NULL)
     {
         error = JNI_FAILED;
+    }
+
+    if (methodId_DownloaderListener_willDownloadPlf == NULL)
+    {
+        if (error == JNI_OK)
+        {
+            classWillDownloadPlfListener = (*env)->FindClass(env, "com/parrot/arsdk/arupdater/ARUpdaterWillDownloadPlfListener");
+
+            if (classWillDownloadPlfListener == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "ARUpdaterWillDownloadPlfListener class not found");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            methodId_DownloaderListener_willDownloadPlf = (*env)->GetMethodID(env, classWillDownloadPlfListener, "onWillDownloadPlf", "(Ljava/lang/Object;Lcom/parrot/arsdk/ardiscovery/ARDISCOVERY_PRODUCT_ENUM;Ljava/lang/String;)V");
+            if (methodId_DownloaderListener_willDownloadPlf == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "Listener willDownload method not found");
+                error = JNI_FAILED;
+            }
+        }
     }
 
     if (methodId_DownloaderListener_onPlfDownloadProgress == NULL)
@@ -353,6 +388,79 @@ void ARUPDATER_JNI_Downloader_ProgressCallback(void* arg, float percent)
                 jPercent = percent;
 
                 (*env)->CallVoidMethod(env, callbacks->jProgressListener, methodId_DownloaderListener_onPlfDownloadProgress, callbacks->jProgressArgs, jPercent);
+            }
+
+            if ((jResultEnv == JNI_EDETACHED) && (env != NULL))
+            {
+                 (*ARUPDATER_JNI_Manager_VM)->DetachCurrentThread(ARUPDATER_JNI_Manager_VM);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Fired just before the uploading of a plf file
+ * @param arg The pointer of the user custom argument
+ * @param product : Description of the product targeted by the plf downloaded
+ * @param remotePlfVersion : The version of the plf file that will be downloaded
+ */
+void ARUPDATER_JNI_Downloader_WillDownloadPlfCallback(void* arg, eARDISCOVERY_PRODUCT product, const char *const remotePlfVersion)
+{
+    ARUPDATER_JNI_DownloaderCallbacks_t *callbacks = (ARUPDATER_JNI_DownloaderCallbacks_t*)arg;
+
+    if (callbacks != NULL)
+    {
+        if ((ARUPDATER_JNI_Manager_VM != NULL) && (callbacks->jWillDownloadPlfListener != NULL) && (methodId_DownloaderListener_willDownloadPlf != NULL))
+        {
+            JNIEnv *env = NULL;
+            jobject jProduct = NULL;
+            jstring jRemotePlfVersion = NULL;
+            jint jResultEnv = 0;
+            int error = JNI_OK;
+
+            jResultEnv = (*ARUPDATER_JNI_Manager_VM)->GetEnv(ARUPDATER_JNI_Manager_VM, (void **) &env, JNI_VERSION_1_6);
+
+            if (jResultEnv == JNI_EDETACHED)
+            {
+                 (*ARUPDATER_JNI_Manager_VM)->AttachCurrentThread(ARUPDATER_JNI_Manager_VM, &env, NULL);
+            }
+
+            if (env == NULL)
+            {
+                error = JNI_FAILED;
+            }
+
+            if (error == JNI_OK)
+            {
+                jProduct = ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM(env, product);
+                
+                if (jProduct == NULL)
+                {
+                    error = JNI_FAILED;
+                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d", error);
+                }
+            }
+
+            if (error == JNI_OK)
+            {
+                jRemotePlfVersion = (*env)->NewStringUTF(env, remotePlfVersion);
+                
+                if (jRemotePlfVersion == NULL)
+                {
+                    error = JNI_FAILED;
+                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d", error);
+                }
+            }
+
+            if ((error == JNI_OK) && (methodId_DownloaderListener_willDownloadPlf != NULL))
+            {
+
+                (*env)->CallVoidMethod(env, callbacks->jWillDownloadPlfListener, methodId_DownloaderListener_willDownloadPlf, callbacks->jWillDownloadPlfArgs, jProduct, jRemotePlfVersion);
+            }
+
+            if (jRemotePlfVersion != NULL)
+            {
+                (*env)->DeleteLocalRef(env, jRemotePlfVersion);
             }
 
             if ((jResultEnv == JNI_EDETACHED) && (env != NULL))
@@ -534,6 +642,7 @@ void ARUPDATER_JNI_Downloader_FreeListenersJNI(JNIEnv *env)
 
     if (error == JNI_OK)
     {
+        methodId_DownloaderListener_willDownloadPlf = NULL;
         methodId_DownloaderListener_onPlfDownloadProgress = NULL;
         methodId_DownloaderListener_onPlfDownloadComplete = NULL;
         methodId_DownloaderListener_downloadPlf = NULL;
@@ -569,6 +678,16 @@ void ARUPDATER_JNI_Downloader_FreeDownloaderCallbacks(JNIEnv *env, ARUPDATER_JNI
         {
             if (env != NULL)
             {
+                if (callbacks->jWillDownloadPlfListener != NULL)
+                {
+                    (*env)->DeleteGlobalRef(env, callbacks->jWillDownloadPlfListener);
+                }
+
+                if (callbacks->jWillDownloadPlfArgs != NULL)
+                {
+                    (*env)->DeleteGlobalRef(env, callbacks->jWillDownloadPlfArgs);
+                }
+
                 if (callbacks->jProgressListener != NULL)
                 {
                     (*env)->DeleteGlobalRef(env, callbacks->jProgressListener);

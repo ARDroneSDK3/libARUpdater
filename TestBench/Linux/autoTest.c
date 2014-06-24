@@ -79,6 +79,11 @@ void test_http_should_download_callback(void* arg, int nbDownload, eARUPDATER_ER
     }
 }
 
+void test_willDownloadPlfCallback(void* arg, eARDISCOVERY_PRODUCT product, const char *const remotePlfVersion)
+{
+    fprintf("Download will start for product : %i (version : %s)\n",product, remotePlfVersion);
+}
+
 void test_http_download_completion_callback(void* arg, eARUPDATER_ERROR error)
 {
     if (error == ARUPDATER_OK)
@@ -124,7 +129,7 @@ int main(int argc, char *argv[])
     
     if(error == ARUPDATER_OK)
     {
-        error =  ARUPDATER_Downloader_New(manager, "./test", md5Manager, ARUPDATER_DOWNLOADER_ANDROID_PLATFORM, "3.0.1",test_http_should_download_callback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
+        error =  ARUPDATER_Downloader_New(manager, "./test", md5Manager, ARUPDATER_DOWNLOADER_ANDROID_PLATFORM, "3.0.1",test_http_should_download_callback, NULL, test_willDownloadPlfCallback, NULL, test_http_progress_callback, "test : ", test_http_download_completion_callback, NULL);
         
         if (error == ARUPDATER_OK)
         {

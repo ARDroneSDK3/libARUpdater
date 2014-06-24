@@ -15,11 +15,13 @@ typedef struct ARUPDATER_DownloadInformation_t
 {
     char *downloadUrl;
     char *md5Expected;
+    char *plfVersion;
+    int remoteSize;
     eARDISCOVERY_PRODUCT product;
     
 }ARUPDATER_DownloadInformation_t;
 
-ARUPDATER_DownloadInformation_t* ARUPDATER_DownloadInformation_New(const char *const downloadUrl, const char *const md5Expected, const eARDISCOVERY_PRODUCT product, eARUPDATER_ERROR *error);
+ARUPDATER_DownloadInformation_t* ARUPDATER_DownloadInformation_New(const char *const downloadUrl, const char *const md5Expected, const char *const plfVersion, int remoteSize, const eARDISCOVERY_PRODUCT product, eARUPDATER_ERROR *error);
 
 void ARUPDATER_DownloadInformation_Delete(ARUPDATER_DownloadInformation_t **downloadInfo);
 

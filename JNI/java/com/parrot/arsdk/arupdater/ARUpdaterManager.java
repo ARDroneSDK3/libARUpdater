@@ -20,6 +20,7 @@ public class ARUpdaterManager
     private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
 
     private long nativeManager = 0;
+    private String localVersion = null;
     private boolean isInit = false;
 
     // Uploader from Android device to product
@@ -144,9 +145,19 @@ public class ARUpdaterManager
      * @return true is the plf is up to date, false otherwise
      * @throws ARUpdaterException throws ARUpdaterException if there is a bad parameter or if there is no plf file in the root folder
      */
-    public boolean isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension) throws ARUpdaterException
+    public boolean isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension, StringBuilder localVersionBuilder) throws ARUpdaterException
     {
-        return nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
+        boolean toReturn = nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
+        if (localVersionBuilder != null)
+        {
+            int currentSize = localVersionBuilder.length();
+            if (currentSize > 0)
+            {
+                localVersionBuilder.delete(0, currentSize);
+            }
+            localVersionBuilder.append(this.localVersion);
+        }
+        return toReturn;
     }
 
     public boolean isPlfVersionBlacklisted(ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension)

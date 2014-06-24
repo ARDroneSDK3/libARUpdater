@@ -19,14 +19,17 @@ typedef enum
     ARUPDATER_ERROR_ALLOC,                              /**< Memory allocation error */
     ARUPDATER_ERROR_BAD_PARAMETER,                      /**< Bad parameters error */
     ARUPDATER_ERROR_SYSTEM,                             /**< System error */
-    ARUPDATER_ERROR_ALREADY_INITIALIZED,                /**< Already initialized error */
-    ARUPDATER_ERROR_NOT_INITIALIZED,                    /**< Not initialized error */
-    ARUPDATER_ERROR_THREAD_PROCESSING,                  /**< Thread processing error */    
+    ARUPDATER_ERROR_THREAD_PROCESSING,                  /**< Thread processing error */
     
-    ARUPDATER_ERROR_PLF = -2000,                        /**< Generic PLF error */
+    ARUPDATER_ERROR_MANAGER = -2000,                    /**< Generic manager error */
+    ARUPDATER_ERROR_MANAGER_ALREADY_INITIALIZED,        /**< The uploader or downloader is already initilized in the manager */
+    ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED,            /**< The uploader or downloader is not initialized in the manager */
+    ARUPDATER_ERROR_MANAGER_BUFFER_TOO_SMALL,           /**< The given buffer is too small */
+    
+    ARUPDATER_ERROR_PLF = -3000,                        /**< Generic PLF error */
     ARUPDATER_ERROR_PLF_FILE_NOT_FOUND,                 /**< Plf File not found */
     
-    ARUPDATER_ERROR_DOWNLOADER = -3000,                    /**< Generic Updater error */
+    ARUPDATER_ERROR_DOWNLOADER = -4000,                    /**< Generic Updater error */
     ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR,              /**< error on a ARUtils operation */
     ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD,                   /**< error downloading a file */
     ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR,             /**< error on a platform name */
@@ -36,7 +39,7 @@ typedef enum
     ARUPDATER_ERROR_DOWNLOADER_FILE_NOT_FOUND,             /**< Plf file not found in the downloader */
     ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH,             /**< MD5 checksum does not match with the remote file */
     
-    ARUPDATER_ERROR_UPLOADER = -4000,                   /**< Generic Uploader error */
+    ARUPDATER_ERROR_UPLOADER = -5000,                   /**< Generic Uploader error */
     ARUPDATER_ERROR_UPLOADER_ARUTILS_ERROR,             /**< error on a ARUtils operation in uploader*/
     ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR,      /**< error on a ARDataTransfer operation in uploader*/
     ARUPDATER_ERROR_UPLOADER_ARSAL_ERROR,               /**< error on a ARSAL operation in uploader*/

@@ -44,10 +44,12 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr);
  * @param[in] version : the version of the remote plf
  * @param[in] edition : the edition of the remote plf
  * @param[in] extension : the extension of the remote plf
+ * @param[out] localVersionBuffer : out buffer that will contain the version of the local plf
+ * @param[in] bufferSize : The size of the localVersionBuffer
  * @param[out] error : ARUPDATER_OK if operation went well, the description of the error otherwise. Can be null
  * @return 1 if the product plf is at the same version (or more recent) as the local plf
  */
-int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, eARUPDATER_ERROR *error);
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, const char *localVersionBuffer, int bufferSize, eARUPDATER_ERROR *error);
 
 /**
  * @brief get if a given plf file is black listed

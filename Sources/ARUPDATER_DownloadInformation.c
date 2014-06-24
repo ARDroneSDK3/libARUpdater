@@ -25,7 +25,7 @@
  *
  *****************************************/
 
-ARUPDATER_DownloadInformation_t* ARUPDATER_DownloadInformation_New(const char *const downloadUrl, const char *const md5Expected, const eARDISCOVERY_PRODUCT product, eARUPDATER_ERROR *error)
+ARUPDATER_DownloadInformation_t* ARUPDATER_DownloadInformation_New(const char *const downloadUrl, const char *const md5Expected, const char *const plfVersion, int remoteSize, const eARDISCOVERY_PRODUCT product, eARUPDATER_ERROR *error)
 {
     ARUPDATER_DownloadInformation_t *downloadInfo = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
@@ -62,6 +62,18 @@ ARUPDATER_DownloadInformation_t* ARUPDATER_DownloadInformation_New(const char *c
         {
             downloadInfo->md5Expected = NULL;
         }
+        
+        if (plfVersion != NULL)
+        {
+            downloadInfo->plfVersion = malloc(strlen(plfVersion) + 1);
+            strcpy(downloadInfo->plfVersion, plfVersion);
+        }
+        else
+        {
+            downloadInfo->plfVersion = NULL;
+        }
+        
+        downloadInfo->remoteSize = remoteSize;
         
         downloadInfo->product = product;
     }
@@ -106,6 +118,11 @@ void ARUPDATER_DownloadInformation_Delete(ARUPDATER_DownloadInformation_t **down
                 downloadInfoPtr->md5Expected = NULL;
             }
             
+            if (downloadInfoPtr->plfVersion != NULL)
+            {
+                free(downloadInfoPtr->plfVersion);
+                downloadInfoPtr->plfVersion = NULL;
+            }
             
             free (downloadInfoPtr);
             downloadInfoPtr = NULL;

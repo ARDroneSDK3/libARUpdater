@@ -56,7 +56,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     {
         if (manager->uploader != NULL)
         {
-            err = ARUPDATER_ERROR_ALREADY_INITIALIZED;
+            err = ARUPDATER_ERROR_MANAGER_ALREADY_INITIALIZED;
         }
         else
         {
@@ -142,7 +142,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
     {
         if (manager->uploader == NULL)
         {
-            error = ARUPDATER_ERROR_NOT_INITIALIZED;
+            error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
         }
         else
         {
@@ -508,7 +508,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
     
     if ((error == ARUPDATER_OK) && (manager->uploader == NULL))
     {
-        error = ARUPDATER_ERROR_NOT_INITIALIZED;
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
     
     if (error == ARUPDATER_OK)
@@ -546,7 +546,7 @@ int ARUPDATER_Uploader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_
     
     if ((err == ARUPDATER_OK) && (manager->uploader == NULL))
     {
-        err = ARUPDATER_ERROR_NOT_INITIALIZED;
+        err = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
     
     if (err == ARUPDATER_OK)

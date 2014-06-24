@@ -10,6 +10,7 @@
 
 #include <libARUpdater/ARUPDATER_Manager.h>
 #include <libARSAL/ARSAL_MD5_Manager.h>
+#include <libARDiscovery/ARDISCOVERY_Discovery.h>
 
 typedef enum
 {
@@ -27,6 +28,14 @@ typedef struct ARUPDATER_Downloader_t ARUPDATER_Downloader_t;
  * @param error The error status to indicate the plf check status
  */
 typedef void (*ARUPDATER_Downloader_ShouldDownloadPlfCallback_t) (void* arg, int nbPlfToBeUploaded, eARUPDATER_ERROR error);
+
+/**
+ * @brief Fired just before the uploading of a plf file
+ * @param arg The pointer of the user custom argument
+ * @param product : Description of the product targeted by the plf downloaded
+ * @param remotePlfVersion : The version of the plf file that will be downloaded
+ */
+typedef void (*ARUPDATER_Downloader_WillDownloadPlfCallback_t) (void* arg, eARDISCOVERY_PRODUCT product, const char *const remotePlfVersion);
 
 /**
  * @brief Progress callback of the plf download
@@ -57,6 +66,8 @@ typedef void (*ARUPDATER_Downloader_PlfDownloadCompletionCallback_t) (void* arg,
  * @param[in] appVersion : Version of the app (pattern : X.Y.Z where X, Y, Z are integers)
  * @param[in] shouldDownloadCallback : callback which tells if the plf will be downloaded or not
  * @param[in|out] downloadArg : arg given to the shouldDownloadCallback
+ * @param[in] willDownloadPlfCallback : callback which is called just the before the download begin
+ * @param[in|out] willDownloadArg : arg given to the willDownloadPlfCallback
  * @param[in] progressCallback : callback which tells the progress of the download
  * @param[in|out] progressArg : arg given to the progressCallback
  * @param[in] completionCallback : callback which tells when the download is completed
@@ -64,7 +75,7 @@ typedef void (*ARUPDATER_Downloader_PlfDownloadCompletionCallback_t) (void* arg,
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  * @see ARUPDATER_Downloader_Delete()
  */
-eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, eARUPDATER_Downloader_Platforms appPlatform, const char* const appVersion, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg);
+eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARSAL_MD5_Manager_t *md5Manager, eARUPDATER_Downloader_Platforms appPlatform, const char* const appVersion, ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback, void *downloadArg, ARUPDATER_Downloader_WillDownloadPlfCallback_t willDownloadCallback, void *willDownloadArg, ARUPDATER_Downloader_PlfDownloadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Downloader_PlfDownloadCompletionCallback_t completionCallback, void *completionArg);
 
 /**
  * @brief Delete the Downloader of the Manager

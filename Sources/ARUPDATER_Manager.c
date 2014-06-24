@@ -15,6 +15,10 @@
 
 #define ARUPDATER_MANAGER_TAG   "ARUPDATER_Manager"
 
+#define ARUPDATER_MANAGER_VERSION_ELEMENT_BUFFER_SIZE   15
+#define ARUPDATER_MANAGER_FULL_VERSION_BUFFER_SIZE      127
+#define ARUPDATER_MANAGER_VERSION_SEPARATOR             "."
+
 typedef struct ARUPDATER_Manager_PlfVersion
 {
     eARDISCOVERY_PRODUCT product;
@@ -93,7 +97,7 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
     }
 }
 
-int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, eARUPDATER_ERROR *error)
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, const char *localVersionBuffer, int bufferSize, eARUPDATER_ERROR *error)
 {
     eARUPDATER_ERROR err = ARUPDATER_OK;
     
@@ -145,6 +149,35 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         strcat(sourceFilePath, plfFilename);
 
         err = ARUPDATER_Utils_GetPlfVersion(sourceFilePath, &sourceVersion, &sourceEdition, &sourceExtension);
+    }
+    
+    if ((err == ARUPDATER_OK) && (localVersionBuffer != NULL))
+    {
+        char buffer[ARUPDATER_MANAGER_VERSION_ELEMENT_BUFFER_SIZE];
+        char versionStrTmp[ARUPDATER_MANAGER_FULL_VERSION_BUFFER_SIZE];
+        
+        // version
+        sprintf(buffer,"%i",sourceVersion);
+        strncat(versionStrTmp, buffer, strlen(buffer));
+        strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
+        
+        // edition
+        sprintf(buffer,"%i",sourceEdition);
+        strncat(versionStrTmp, buffer, strlen(buffer));
+        strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
+        
+        // extension
+        sprintf(buffer,"%i",sourceExtension);
+        strncat(versionStrTmp, buffer, strlen(buffer));
+        
+        if (strlen(versionStrTmp) <= bufferSize)
+        {
+            strcpy((char*)localVersionBuffer, versionStrTmp);
+        }
+        else
+        {
+            err = ARUPDATER_ERROR_MANAGER_BUFFER_TOO_SMALL;
+        }
     }
     
     if (err == ARUPDATER_OK)

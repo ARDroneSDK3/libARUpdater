@@ -23,6 +23,8 @@ extern JavaVM* ARUPDATER_JNI_Manager_VM;
  */
 typedef struct _ARUPDATER_JNI_DownloaderCallbacks_t_
 {
+    jobject jWillDownloadPlfListener;
+    jobject jWillDownloadPlfArgs;
     jobject jProgressListener;
     jobject jProgressArgs;
     jobject jCompletionListener;
@@ -132,6 +134,16 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env);
  * @see ARUPDATER_JNI_Downloader_NewListenersJNI
  */
 void ARUPDATER_JNI_Downloader_FreeListenersJNI(JNIEnv *env);
+
+/**
+ * @brief Callback fired just before the uploading of a plf file
+ * @param arg The arg
+ * @param product : Description of the product targeted by the plf downloaded
+ * @param remotePlfVersion : The version of the plf file that will be downloaded
+ * @retval void
+ * @see ARUPDATER_JNI_Downloader_FreeListenersJNI
+ */
+void ARUPDATER_JNI_Downloader_WillDownloadPlfCallback(void* arg, eARDISCOVERY_PRODUCT product, const char *const remotePlfVersion);
 
 /**
  * @brief Callback that give the download progress percent
