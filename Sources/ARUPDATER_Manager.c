@@ -158,7 +158,7 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         
         // version
         sprintf(buffer,"%i",sourceVersion);
-        strncat(versionStrTmp, buffer, strlen(buffer));
+        strncpy(versionStrTmp, buffer, strlen(buffer));
         strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
         
         // edition
