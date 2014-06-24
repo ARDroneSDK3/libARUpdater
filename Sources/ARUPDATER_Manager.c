@@ -158,17 +158,17 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         
         // version
         sprintf(buffer,"%i",sourceVersion);
-        strncpy(versionStrTmp, buffer, strlen(buffer));
+        strcpy(versionStrTmp, buffer);
         strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
         
         // edition
         sprintf(buffer,"%i",sourceEdition);
-        strncat(versionStrTmp, buffer, strlen(buffer));
+        strcat(versionStrTmp, buffer);
         strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
         
         // extension
         sprintf(buffer,"%i",sourceExtension);
-        strncat(versionStrTmp, buffer, strlen(buffer));
+        strcat(versionStrTmp, buffer);
         
         if (strlen(versionStrTmp) <= bufferSize)
         {
