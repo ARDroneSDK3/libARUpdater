@@ -145,18 +145,10 @@ public class ARUpdaterManager
      * @return true is the plf is up to date, false otherwise
      * @throws ARUpdaterException throws ARUpdaterException if there is a bad parameter or if there is no plf file in the root folder
      */
-    public boolean isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension, StringBuilder localVersionBuilder) throws ARUpdaterException
+    public ARUpdaterUploadPlfVersionInfo isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension) throws ARUpdaterException
     {
-        boolean toReturn = nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
-        if (localVersionBuilder != null)
-        {
-            int currentSize = localVersionBuilder.length();
-            if (currentSize > 0)
-            {
-                localVersionBuilder.delete(0, currentSize);
-            }
-            localVersionBuilder.append(this.localVersion);
-        }
+        boolean upToDate = nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
+        ARUpdaterUploadPlfVersionInfo toReturn = new ARUpdaterUploadPlfVersionInfo(upToDate, this.localVersion);
         return toReturn;
     }
 
