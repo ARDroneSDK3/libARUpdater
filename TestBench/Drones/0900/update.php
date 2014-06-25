@@ -418,7 +418,7 @@ function main()
 	{
 		$url = getUrlPath($file);
 		$md5 = md5_file($file);
-		sendErrorResponse(ERROR_SHOULD_UPDATE, $url . TOKEN . $md5 . TOKEN . $size);
+		sendErrorResponse(ERROR_SHOULD_UPDATE, $url . TOKEN . $md5 . TOKEN . $size . TOKEN . $localVersion);
 	}   
 	else
 	{
