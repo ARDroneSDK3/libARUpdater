@@ -173,11 +173,15 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
         (*env)->ReleaseStringUTFChars(env, jRootFolder, rootFolder);
     }
 
-    if (localVersionBuffer != NULL)
+    if (localVersionBuffer != NULL && result == ARUPDATER_OK)
     {
         jstring jLocalVersion = (*env)->NewStringUTF(env, localVersionBuffer);
         free(localVersionBuffer);
         (*env)->SetObjectField(env, jThis, localVersionField, jLocalVersion);
+    }
+    else
+    {
+        (*env)->SetObjectField(env, jThis, localVersionField, NULL);
     }
 
     if (result != ARUPDATER_OK)
