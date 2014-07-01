@@ -131,6 +131,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         downloader->downloadConnection = NULL;
         
         downloader->downloadInfos = malloc(sizeof(ARUPDATER_DownloadInformation_t*) * ARDISCOVERY_PRODUCT_MAX);
+        int i = 0;
+        for (i = 0; i < ARDISCOVERY_PRODUCT_MAX; i++)
+        {
+            downloader->downloadInfos[i] = NULL;
+        }
     }
 
     if (err == ARUPDATER_OK)
