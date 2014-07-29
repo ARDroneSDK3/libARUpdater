@@ -116,7 +116,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     {
         error = ARUPDATER_JNI_Downloader_NewListenersJNI(env);
     }
-    
+
     const char *rootFolder = (*env)->GetStringUTFChars(env, jRootFolder, 0);
 
     const char *appVersion = (*env)->GetStringUTFChars(env, jAppVersion, 0);
@@ -184,6 +184,43 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
 
     result = ARUPDATER_Downloader_CancelThread(nativeManager);
+
+    return result;
+}
+
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeSetUpdatesProductList(JNIEnv *env, jobject jThis, jlong jManager, jintArray jProductArray)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    jint *productIntArray = NULL;
+    jsize productArrayCount;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+    if (jProductArray == NULL)
+    {
+        result = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+
+    if (result == ARUPDATER_OK)
+    {
+        productArrayCount = (*env)->GetArrayLength(env, jProductArray);
+        productIntArray = (*env)->GetIntArrayElements(env, jProductArray, NULL);
+        if (productIntArray == NULL)
+        {
+            result = ARUPDATER_ERROR_ALLOC;
+        }
+    }
+
+    if (result == ARUPDATER_OK)
+    {
+        result = ARUPDATER_Downloader_SetUpdatesProductList(nativeManager, productIntArray, productArrayCount);
+    }
+
+    if ((jProductArray != NULL) && (productIntArray != NULL))
+    {
+        (*env)->ReleaseIntArrayElements(env, jProductArray, productIntArray, 0);
+    }
 
     return result;
 }
@@ -433,7 +470,7 @@ void ARUPDATER_JNI_Downloader_WillDownloadPlfCallback(void* arg, eARDISCOVERY_PR
             if (error == JNI_OK)
             {
                 jProduct = ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM(env, product);
-                
+
                 if (jProduct == NULL)
                 {
                     error = JNI_FAILED;
@@ -444,7 +481,7 @@ void ARUPDATER_JNI_Downloader_WillDownloadPlfCallback(void* arg, eARDISCOVERY_PR
             if (error == JNI_OK)
             {
                 jRemotePlfVersion = (*env)->NewStringUTF(env, remotePlfVersion);
-                
+
                 if (jRemotePlfVersion == NULL)
                 {
                     error = JNI_FAILED;
@@ -586,11 +623,11 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUpl
                 error = JNI_FAILED;
                 ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error no env");
             }
-            
+
             if (error == JNI_OK)
             {
                 jError = ARUPDATER_JNI_Manager_NewERROR_ENUM(env, nativeError);
-                
+
                 if (jError == NULL)
                 {
                     error = JNI_FAILED;
@@ -602,7 +639,7 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUpl
             {
                 (*env)->CallVoidMethod(env, callbacks->jDownloadListener, methodId_DownloaderListener_downloadPlf, callbacks->jDownloadArgs, nbPlfToBeUploaded, jError);
             }
-            
+
             if ((env != NULL) && (jError != NULL))
             {
                 (*env)->DeleteLocalRef(env, jError);

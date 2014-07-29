@@ -17,28 +17,30 @@
 struct ARUPDATER_Downloader_t
 {
     char *rootFolder;
-    
+
     eARUPDATER_Downloader_Platforms appPlatform;
     char *appVersion;
-    
+
     void *downloadArg;
     void *willDownloadPlfArg;
     void *progressArg;
     void *completionArg;
-    
+
     int isRunning;
     int isCanceled;
-    
+
     int updateHasBeenChecked;
     ARUPDATER_DownloadInformation_t **downloadInfos;
-    
+    eARDISCOVERY_PRODUCT *productList;
+    int productCount;
+
     ARSAL_MD5_Manager_t *md5Manager;
-    
+
     ARSAL_Mutex_t requestLock;
     ARSAL_Mutex_t downloadLock;
     ARUTILS_Http_Connection_t *requestConnection;
     ARUTILS_Http_Connection_t *downloadConnection;
-    
+
     ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback;
     ARUPDATER_Downloader_WillDownloadPlfCallback_t willDownloadPlfCallback;
     ARUPDATER_Downloader_PlfDownloadProgressCallback_t plfDownloadProgressCallback;

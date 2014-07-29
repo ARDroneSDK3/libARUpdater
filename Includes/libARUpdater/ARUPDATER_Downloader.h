@@ -16,7 +16,7 @@ typedef enum
 {
     ARUPDATER_DOWNLOADER_ANDROID_PLATFORM,
     ARUPDATER_DOWNLOADER_IOS_PLATFORM,
-    
+
 }eARUPDATER_Downloader_Platforms;
 
 typedef struct ARUPDATER_Downloader_t ARUPDATER_Downloader_t;
@@ -84,6 +84,16 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
  * @see ARUPDATER_Downloader_New ()
  */
 eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager);
+
+/**
+ * @brief Set products list to updates process
+ * @param managerArg : thread data of type ARUPDATER_Manager_t*
+ * @param productList : addresse of hte list of product enums
+ * @param productCount : count of product enums given by the list
+ * @return ARUPDATER_OK if operation went well, a description of the error otherwise. Casted into a void*
+ */
+eARUPDATER_ERROR ARUPDATER_Downloader_SetUpdatesProductList(ARUPDATER_Manager_t *manager, eARDISCOVERY_PRODUCT *productList, int productCount);
+
 
 /**
  * @brief Check if updates are available asynchrounously

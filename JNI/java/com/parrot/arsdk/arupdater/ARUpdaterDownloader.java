@@ -4,6 +4,7 @@ package com.parrot.arsdk.arupdater;
 import java.lang.Runnable;
 import com.parrot.arsdk.arsal.ARSALPrint;
 import com.parrot.arsdk.arsal.ARSALMd5Manager;
+import com.parrot.arsdk.ardiscovery.ARDISCOVERY_PRODUCT_ENUM;
 
 
 public class ARUpdaterDownloader
@@ -20,6 +21,7 @@ public class ARUpdaterDownloader
     private native int nativeDelete(long manager);
     private native void nativeThreadRun (long manager);
     private native int nativeCancelThread (long manager);
+    private native int nativeSetUpdatesProductList (long manager, int[] productArray);
     private native int nativeCheckUpdatesAsync(long manager);
     private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
 
@@ -143,6 +145,20 @@ public class ARUpdaterDownloader
         }
 
         return runnable;
+    }
+
+    public ARUPDATER_ERROR_ENUM setUpdatesProductList(ARDISCOVERY_PRODUCT_ENUM[] productEnumArray)
+    {
+	int[] productArray = new int[productEnumArray.length];
+	for (int i=0; i<productEnumArray.length; i++)
+	{
+            productArray[i] = productEnumArray[i].getValue();
+	}
+        int result = nativeSetUpdatesProductList(nativeManager, productArray);
+
+        ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
+
+        return error;
     }
 
     /**
