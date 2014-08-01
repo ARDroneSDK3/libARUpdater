@@ -981,9 +981,9 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         manager->downloader->updateHasBeenChecked = 1;
     }
     ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
-    int version;
-    int edit;
-    int ext;
+    int version = 0;
+    int edit = 0;
+    int ext = 0;
     eARUTILS_ERROR utilsError = ARUTILS_OK;
     char *device = NULL;
     uint32_t dataSize;
