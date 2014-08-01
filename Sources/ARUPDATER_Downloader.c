@@ -959,3 +959,214 @@ char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platf
 
     return toReturn;
 }
+
+
+int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err, ARUPDATER_DownloadInformation_t*** informations)
+{
+    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    int nbUpdatesToDownload = 0;
+    if (manager == NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    if (manager->downloader == NULL)
+    {
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
+        manager->downloader->updateHasBeenChecked = 1;
+    }
+    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+    int version;
+    int edit;
+    int ext;
+    eARUTILS_ERROR utilsError = ARUTILS_OK;
+    char *device = NULL;
+    uint32_t dataSize;
+    char **dataPtr = NULL;
+    char *data;
+    ARSAL_Sem_t requestSem;
+    char *platform = NULL;
+    
+    if (error == ARUPDATER_OK)
+    {
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+        platform = ARUPDATER_Downloader_GetPlatformName(manager->downloader->appPlatform);
+        if (platform == NULL)
+        {
+            error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
+        }
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+    }
+    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+    int product = 0;
+    while ((error == ARUPDATER_OK) && (product < ARDISCOVERY_PRODUCT_MAX))
+    {
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+        // for each product, check if update is needed
+        uint16_t productId = ARDISCOVERY_getProductID(product);
+        
+        device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
+        snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+        
+        dataPtr = malloc(sizeof(char*));
+        
+        // init the request semaphore
+        ARSAL_Mutex_Lock(&manager->downloader->requestLock);
+        if (error == ARUPDATER_OK)
+        {
+            int resultSys = ARSAL_Sem_Init(&requestSem, 0, 0);
+            if (resultSys != 0)
+            {
+                error = ARUPDATER_ERROR_SYSTEM;
+            }
+        }
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+        // init the connection
+        if (error == ARUPDATER_OK)
+        {
+            ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+            manager->downloader->requestConnection = ARUTILS_Http_Connection_New(&requestSem, ARUPDATER_DOWNLOADER_SERVER_URL, 80, HTTPS_PROTOCOL_FALSE, NULL, NULL, &utilsError);
+            if (utilsError != ARUTILS_OK)
+            {
+                ARUTILS_Http_Connection_Delete(&manager->downloader->requestConnection);
+                manager->downloader->requestConnection = NULL;
+                ARSAL_Sem_Destroy(&requestSem);
+                error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
+            }
+        }
+        ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+        // request the php
+        if (error == ARUPDATER_OK)
+        {
+            char buffer[ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT];
+            // create the url params
+            char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
+            strcpy(params, ARUPDATER_DOWNLOADER_PRODUCT_PARAM);
+            strcat(params, device);
+            
+            strcat(params, ARUPDATER_DOWNLOADER_SERIAL_PARAM);
+            strcat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE);
+            
+            strcat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM);
+            sprintf(buffer,"%i",version);
+            strncat(params, buffer, strlen(buffer));
+            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
+            sprintf(buffer,"%i",edit);
+            strncat(params, buffer, strlen(buffer));
+            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
+            sprintf(buffer,"%i",ext);
+            strncat(params, buffer, strlen(buffer));
+            
+            strcat(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM);
+            strcat(params, platform);
+            
+            strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
+            strcat(params, manager->downloader->appVersion);
+            
+            char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
+            strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
+            strcat(endUrl, device);
+            strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_URL);
+            strcat(endUrl, params);
+            ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "%s", endUrl);
+            utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)dataPtr, &dataSize, NULL, NULL);
+            if (utilsError != ARUTILS_OK)
+            {
+                error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
+            }
+            
+            ARSAL_Mutex_Lock(&manager->downloader->requestLock);
+            if (manager->downloader->requestConnection != NULL)
+            {
+                ARUTILS_Http_Connection_Delete(&manager->downloader->requestConnection);
+                manager->downloader->requestConnection = NULL;
+                ARSAL_Sem_Destroy(&requestSem);
+            }
+            ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
+            ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+            free(endUrl);
+            endUrl = NULL;
+            free(params);
+            params = NULL;
+        }
+        
+        // check if data fetch from request is valid
+        if (error == ARUPDATER_OK)
+        {
+            if (*dataPtr != NULL)
+            {
+                (*dataPtr)[dataSize] = '\0';
+                if (strlen(*dataPtr) != dataSize)
+                {
+                    error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
+                }
+            }
+        }
+        
+        // check if plf file need to be updated
+        if (error == ARUPDATER_OK)
+        {
+            data = *dataPtr;
+            char *result;
+            result = strtok(data, "|");
+            
+            // if this plf is not up to date
+            if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
+            {
+                nbUpdatesToDownload++;
+                char *downloadUrl = strtok(NULL, "|");
+                char *remoteMD5 = strtok(NULL, "|");
+                char *remoteSizeStr = strtok(NULL, "|");
+                int remoteSize = 0;
+                if (remoteSizeStr != NULL)
+                {
+                    remoteSize = atoi(remoteSizeStr);
+                }
+                char *remoteVersion = strtok(NULL, "|");
+                ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+                manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
+                ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+            }
+            else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
+            {
+                manager->downloader->downloadInfos[product] = NULL;
+            }
+            else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_APP_VERSION_OUT_TO_DATE) == 0)
+            {
+                error = ARUPDATER_ERROR_DOWNLOADER_PHP_APP_OUT_TO_DATE_ERROR;
+            }
+            else
+            {
+                error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+            }
+        }
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+        if (device != NULL)
+        {
+            free(device);
+            device = NULL;
+        }
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+        if (dataPtr != NULL)
+        {
+            free(dataPtr);
+            dataPtr = NULL;
+        }
+        
+        product++;
+    }
+    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "");
+    
+    if (err != NULL)
+    {
+        *err = error;
+    }
+    *informations = manager->downloader->downloadInfos;
+    return  product;
+}

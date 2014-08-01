@@ -24,6 +24,7 @@ public class ARUpdaterDownloader
     private native int nativeSetUpdatesProductList (long manager, int[] productArray);
     private native int nativeCheckUpdatesAsync(long manager);
     private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
+    private native ARUpdaterDownloadInfo[] nativeGetUpdatesInfoSync(long manager) throws ARUpdaterException;
 
     private long nativeManager = 0;
     private Runnable downloaderRunnable = null;
@@ -182,5 +183,15 @@ public class ARUpdaterDownloader
         int nbPlfToBeUpdated = nativeCheckUpdatesSync(nativeManager);
 
         return nbPlfToBeUpdated;
+    }
+
+    /**
+     * Use this to get synchronously update info from internet
+     */
+    public ARUpdaterDownloadInfo[] getUpdatesInfoSync() throws ARUpdaterException
+    {
+        ARUpdaterDownloadInfo[] infos = nativeGetUpdatesInfoSync(nativeManager);
+
+        return infos;
     }
 }

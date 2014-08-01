@@ -19,6 +19,16 @@ typedef enum
 
 }eARUPDATER_Downloader_Platforms;
 
+typedef struct ARUPDATER_DownloadInformation_t
+{
+    char *downloadUrl;
+    char *md5Expected;
+    char *plfVersion;
+    int remoteSize;
+    eARDISCOVERY_PRODUCT product;
+    
+}ARUPDATER_DownloadInformation_t;
+
 typedef struct ARUPDATER_Downloader_t ARUPDATER_Downloader_t;
 
 /**
@@ -110,6 +120,15 @@ void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg);
  * @return The number of plf file which need to be updated
  */
 int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err);
+
+/**
+ * @brief Get update information from server synchrounously
+ * @param manager : pointer on the manager
+ * @param[out] err : The error status. Can be null.
+ * @return An array filled with updates info
+ */
+//ARUPDATER_DownloadInformation_t** ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err);
+int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err, ARUPDATER_DownloadInformation_t*** informations);
 
 /**
  * @brief Download all plf if needed

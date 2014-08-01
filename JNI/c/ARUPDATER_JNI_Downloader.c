@@ -32,6 +32,11 @@ jmethodID methodId_DownloaderListener_onPlfDownloadProgress = NULL;
 jmethodID methodId_DownloaderListener_onPlfDownloadComplete = NULL;
 jmethodID methodId_DownloaderListener_downloadPlf = NULL;
 
+jclass classDownloadInfo;
+jmethodID methodId_DownloadInfo_init;
+
+jobject ARUPDATER_JNI_Downloader_NewDownloadInfo(JNIEnv *env, ARUPDATER_DownloadInformation_t *info);
+
 JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeStaticInit(JNIEnv *env, jclass jClass)
 {
     jboolean jret = JNI_FALSE;
@@ -258,6 +263,56 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     }
     return nbPlfToBeUploaded;
 }
+
+/**
+ * @brief Get update information from server synchrounously
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeGetUpdatesInfoSync(JNIEnv *env, jobject jThis, jlong jManager)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    ARUPDATER_DownloadInformation_t** informations = NULL;
+    int nbInformation = 0;
+    jobjectArray ret = NULL;
+
+    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+    int error = ARUPDATER_JNI_Downloader_NewDownloadInfoJNI(env);
+
+    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+    if (error != JNI_OK)
+    {
+        result = ARUPDATER_ERROR_SYSTEM;
+    }
+    
+    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+    nbInformation = ARUPDATER_Downloader_GetUpdatesInfoSync(nativeManager, &result, &informations);
+
+    if (result != ARUPDATER_OK)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "error during ARUPDATER_Downloader_GetUpdatesInfoSync: %d", result);
+        ARUPDATER_JNI_Manager_ThrowARUpdaterException(env, result);
+    }
+    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", informations);
+    ret = (*env)->NewObjectArray(env, nbInformation, classDownloadInfo, NULL);
+    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    if (ret != NULL)
+    {   int i = 0;
+        for (i = 0; i < nbInformation; i++)
+        {
+            jobject downloadInfo = ARUPDATER_JNI_Downloader_NewDownloadInfo(env, informations[i]);
+            (*env)->SetObjectArrayElement(env, ret, i, downloadInfo);
+        }
+    }
+    
+
+    ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(env);
+
+    return ret;
+}
+
 
 
 /**
@@ -681,10 +736,22 @@ void ARUPDATER_JNI_Downloader_FreeListenersJNI(JNIEnv *env)
     }
 }
 
+void ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(JNIEnv *env)
+{
+    int error = JNI_OK;
 
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
 
+    if (env == NULL)
+    {
+        error = JNI_FAILED;
+    }
 
-
+    if (error == JNI_OK)
+    {
+        (*env)->DeleteGlobalRef(env, classDownloadInfo);
+    }
+}
 
 
 
@@ -758,4 +825,122 @@ void ARUPDATER_JNI_Downloader_FreeDownloaderCallbacks(JNIEnv *env, ARUPDATER_JNI
 
         *callbacksParam = NULL;
     }
+}
+
+
+
+int ARUPDATER_JNI_Downloader_NewDownloadInfoJNI(JNIEnv *env)
+{
+    jclass locClassDownloadInfo = NULL;
+    int error = JNI_OK;
+
+    if (classDownloadInfo == NULL)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+
+        if (env == NULL)
+        {
+            error = JNI_FAILED;
+        }
+
+        if (error == JNI_OK)
+        {
+            locClassDownloadInfo = (*env)->FindClass(env, "com/parrot/arsdk/arupdater/ARUpdaterDownloadInfo");
+
+            if (locClassDownloadInfo == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "ARUpdaterDownloadInfo class not found");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            classDownloadInfo = (*env)->NewGlobalRef(env, locClassDownloadInfo);
+
+            if (classDownloadInfo == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "ARUpdaterDownloadInfo global ref failed");
+                error = JNI_FAILED;
+            }
+        }
+
+        if (error == JNI_OK)
+        {
+            methodId_DownloadInfo_init = (*env)->GetMethodID(env, classDownloadInfo, "<init>", "(Ljava/lang/String;Ljava/lang/String;I)V");
+
+            if (methodId_DownloadInfo_init == NULL)
+            {
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "ARUpdaterDownloadInfo <init> method not found");
+                error = JNI_FAILED;
+            }
+        }
+    }
+
+    return error;
+}
+
+
+jobject ARUPDATER_JNI_Downloader_NewDownloadInfo(JNIEnv *env, ARUPDATER_DownloadInformation_t *info)
+{
+    jobject jInfo = NULL;
+    jstring jDownloadUrl = NULL;
+    jstring jPlfVersion = NULL;
+    jint jProduct = NULL;
+    int error = JNI_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", (info->plfVersion != NULL) ? info->plfVersion : "null");
+
+    if ((env == NULL) || (info == NULL))
+    {
+        error = JNI_FAILED;
+    }
+
+    if (error == JNI_OK)
+    {
+        if ((classDownloadInfo == NULL) || (methodId_DownloadInfo_init == NULL))
+        {
+            error = JNI_FAILED;
+        }
+    }
+
+    if ((error == JNI_OK) && (info->downloadUrl != NULL))
+    {
+        jDownloadUrl = (*env)->NewStringUTF(env, info->downloadUrl);
+
+        if (jDownloadUrl == NULL)
+        {
+            error = JNI_FAILED;
+        }
+    }
+
+    if ((error == JNI_OK) && (info->plfVersion != NULL))
+    {
+        jPlfVersion = (*env)->NewStringUTF(env, info->plfVersion);
+
+        if (jPlfVersion == NULL)
+        {
+            error = JNI_FAILED;
+        }
+    }
+
+
+    if (error == JNI_OK)
+    {
+        jInfo = (*env)->NewObject(env, classDownloadInfo, methodId_DownloadInfo_init, jDownloadUrl, jPlfVersion, (jint)ARDISCOVERY_getProductID(info->product));
+    }
+
+    // clean local refs
+
+    if (jDownloadUrl != NULL)
+    {
+        (*env)->DeleteLocalRef(env, jDownloadUrl);
+    }
+
+    if (jPlfVersion != NULL)
+    {
+        (*env)->DeleteLocalRef(env, jPlfVersion);
+    }
+
+    return jInfo;
 }

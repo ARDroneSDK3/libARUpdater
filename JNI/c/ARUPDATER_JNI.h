@@ -182,10 +182,9 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int shouldDownlo
  */
 void ARUPDATER_JNI_Downloader_FreeDownloaderCallbacks(JNIEnv *env, ARUPDATER_JNI_DownloaderCallbacks_t **callbacks);
 
+int ARUPDATER_JNI_Downloader_NewDownloadInfoJNI(JNIEnv *env);
 
-
-
-
+void ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(JNIEnv *env);
 
 /*************************************************
 	Uploader callback methods

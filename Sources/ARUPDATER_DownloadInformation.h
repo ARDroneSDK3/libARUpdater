@@ -10,16 +10,8 @@
 
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
 #include <libARUpdater/ARUPDATER_Error.h>
+#include <libARUpdater/ARUPDATER_Downloader.h>
 
-typedef struct ARUPDATER_DownloadInformation_t
-{
-    char *downloadUrl;
-    char *md5Expected;
-    char *plfVersion;
-    int remoteSize;
-    eARDISCOVERY_PRODUCT product;
-    
-}ARUPDATER_DownloadInformation_t;
 
 ARUPDATER_DownloadInformation_t* ARUPDATER_DownloadInformation_New(const char *const downloadUrl, const char *const md5Expected, const char *const plfVersion, int remoteSize, const eARDISCOVERY_PRODUCT product, eARUPDATER_ERROR *error);
 
