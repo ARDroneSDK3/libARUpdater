@@ -61,6 +61,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
 {
     ARUPDATER_Downloader_t *downloader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
+    int i = 0;
 
     // Check parameters
     if ((manager == NULL) || (rootFolder == NULL) || (md5Manager == NULL) || (appVersion == NULL))
@@ -133,10 +134,29 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         downloader->downloadConnection = NULL;
 
         downloader->downloadInfos = malloc(sizeof(ARUPDATER_DownloadInformation_t*) * ARDISCOVERY_PRODUCT_MAX);
-        int i = 0;
-        for (i = 0; i < ARDISCOVERY_PRODUCT_MAX; i++)
+        if (downloader->downloadInfos == NULL)
         {
-            downloader->downloadInfos[i] = NULL;
+            err = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            for (i = 0; i < ARDISCOVERY_PRODUCT_MAX; i++)
+            {
+                downloader->downloadInfos[i] = NULL;
+            }
+        }
+        manager->downloader->productList = malloc(sizeof(eARDISCOVERY_PRODUCT) * ARDISCOVERY_PRODUCT_MAX);
+        if (manager->downloader->productList == NULL)
+        {
+            err = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            manager->downloader->productCount = ARDISCOVERY_PRODUCT_MAX;
+            for (i=0; i<ARDISCOVERY_PRODUCT_MAX; i++)
+            {
+                manager->downloader->productList[i] = i;
+            }
         }
     }
 

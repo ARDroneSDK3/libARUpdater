@@ -193,16 +193,11 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
     jint *productIntArray = NULL;
-    jsize productArrayCount;
+    jsize productArrayCount = 0;
 
     ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
 
-    if (jProductArray == NULL)
-    {
-        result = ARUPDATER_ERROR_BAD_PARAMETER;
-    }
-
-    if (result == ARUPDATER_OK)
+    if (jProductArray != NULL)
     {
         productArrayCount = (*env)->GetArrayLength(env, jProductArray);
         productIntArray = (*env)->GetIntArrayElements(env, jProductArray, NULL);
