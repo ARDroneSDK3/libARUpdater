@@ -249,10 +249,9 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
 eARUPDATER_ERROR ARUPDATER_Downloader_SetUpdatesProductList(ARUPDATER_Manager_t *manager, eARDISCOVERY_PRODUCT *productList, int productCount)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    int nbUpdatesToDownload = 0;
     int i;
 
-    if ((manager == NULL))
+    if (manager == NULL)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
