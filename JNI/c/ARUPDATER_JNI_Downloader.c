@@ -275,40 +275,37 @@ JNIEXPORT jobjectArray JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownload
     int nbInformation = 0;
     jobjectArray ret = NULL;
 
-    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
-
     int error = ARUPDATER_JNI_Downloader_NewDownloadInfoJNI(env);
-
-    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
 
     if (error != JNI_OK)
     {
         result = ARUPDATER_ERROR_SYSTEM;
     }
-    
-    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
 
     nbInformation = ARUPDATER_Downloader_GetUpdatesInfoSync(nativeManager, &result, &informations);
+    
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", informations);
+    if (result == ARUPDATER_OK)
+    {
+        ret = (*env)->NewObjectArray(env, nbInformation, classDownloadInfo, NULL);
+        if (ret != NULL)
+        {   int i = 0;
+            for (i = 0; i < nbInformation; i++)
+            {
+                jobject downloadInfo = ARUPDATER_JNI_Downloader_NewDownloadInfo(env, informations[i]);
+                (*env)->SetObjectArrayElement(env, ret, i, downloadInfo);
+            }
+        }
+        
+    }    
+
+    ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(env);
 
     if (result != ARUPDATER_OK)
     {
         ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "error during ARUPDATER_Downloader_GetUpdatesInfoSync: %d", result);
         ARUPDATER_JNI_Manager_ThrowARUpdaterException(env, result);
     }
-    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", informations);
-    ret = (*env)->NewObjectArray(env, nbInformation, classDownloadInfo, NULL);
-    ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "");
-    if (ret != NULL)
-    {   int i = 0;
-        for (i = 0; i < nbInformation; i++)
-        {
-            jobject downloadInfo = ARUPDATER_JNI_Downloader_NewDownloadInfo(env, informations[i]);
-            (*env)->SetObjectArrayElement(env, ret, i, downloadInfo);
-        }
-    }
-    
-
-    ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(env);
 
     return ret;
 }
@@ -747,9 +744,10 @@ void ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(JNIEnv *env)
         error = JNI_FAILED;
     }
 
-    if (error == JNI_OK)
+    if (error == JNI_OK && classDownloadInfo != NULL)
     {
         (*env)->DeleteGlobalRef(env, classDownloadInfo);
+        classDownloadInfo = NULL;
     }
 }
 
