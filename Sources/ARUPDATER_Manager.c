@@ -138,7 +138,7 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         strcat(productFolder, device);
         strcat(productFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
         
-        plfFilename = malloc(1);
+        plfFilename = NULL;
         err = ARUPDATER_Utils_GetPlfInFolder(productFolder, &plfFilename);
     }
     

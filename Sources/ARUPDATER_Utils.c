@@ -50,11 +50,12 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    if ((plfFolder == NULL) || (plfFileName == NULL) || (*plfFileName == NULL))
+    if ((plfFolder == NULL) || (plfFileName == NULL))
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
+
+    *plfFileName = NULL;
     if (ARUPDATER_OK == error)
     {
         DIR *dir = opendir(plfFolder);
@@ -70,8 +71,15 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
                 if ((extension != NULL) && (strcmp(extension, ARUPDATER_MANAGER_PLF_EXTENSION) == 0))
                 {
                     int plfFileNameLength = strlen(filename) + 1;
-                    *plfFileName = realloc(*plfFileName, plfFileNameLength);
-                    strcpy(*plfFileName, filename);
+                    *plfFileName = malloc(plfFileNameLength);
+                    if (*plfFileName == NULL)
+                    {
+                        error = ARUPDATER_ERROR_ALLOC;
+                    }
+                    else
+                    {
+                        strcpy(*plfFileName, filename);
+                    }
                     found = 1;
                 }
             }

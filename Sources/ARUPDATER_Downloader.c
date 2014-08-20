@@ -368,7 +368,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         strcat(deviceFolder, device);
         strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
 
-        char *fileName = malloc(1);
+        char *fileName = NULL;
         error = ARUPDATER_Utils_GetPlfInFolder(deviceFolder, &fileName);
         if (error == ARUPDATER_OK)
         {

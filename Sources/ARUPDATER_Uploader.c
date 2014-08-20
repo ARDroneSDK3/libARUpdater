@@ -207,7 +207,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     strcat(sourceFileFolder, device);
     strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
     
-    fileName = malloc(1);
+    fileName = NULL;
     error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
     
     if (error == ARUPDATER_OK)
