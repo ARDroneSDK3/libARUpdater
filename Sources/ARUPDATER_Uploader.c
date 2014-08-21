@@ -242,11 +242,11 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         if (ARSAL_OK == arsalError)
         {
             // get md5 in text
-            md5Txt = malloc(ARSAL_MD5_LENGTH * 2);
+            md5Txt = malloc(ARSAL_MD5_LENGTH * 2 + 1);
             int i = 0;
             for (i = 0; i < ARSAL_MD5_LENGTH; i++)
             {
-                sprintf(&md5Txt[i * 2], "%02x", md5[i]);
+                snprintf(&md5Txt[i * 2], 3, "%02x", md5[i]);
             }
         }
         else
@@ -304,7 +304,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
             while ((size = fread(line, 1, ARUPDATER_UPLOADER_CHUNK_SIZE, md5File)) != 0)
             {
                 allocatedSize += size;
-                uploadedMD5 = realloc(uploadedMD5, allocatedSize);
+                uploadedMD5 = realloc(uploadedMD5, allocatedSize + 1);
                 strncat(uploadedMD5, line, size);
                 uploadedMD5[allocatedSize] = '\0';
             }
