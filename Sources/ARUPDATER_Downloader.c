@@ -985,7 +985,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     eARUTILS_ERROR utilsError = ARUTILS_OK;
     char *device = NULL;
     uint32_t dataSize;
-    char **dataPtr = NULL;
+    char *dataPtr = NULL;
     char *data;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
@@ -1006,8 +1006,6 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
-        
-        dataPtr = malloc(sizeof(char*));
         
         // init the request semaphore
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
@@ -1066,7 +1064,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_URL);
             strcat(endUrl, params);
             ARSAL_PRINT (ARSAL_PRINT_DEBUG, ARUPDATER_DOWNLOADER_TAG, "%s", endUrl);
-            utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)dataPtr, &dataSize, NULL, NULL);
+            utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)&dataPtr, &dataSize, NULL, NULL);
             if (utilsError != ARUTILS_OK)
             {
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
@@ -1089,10 +1087,10 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         // check if data fetch from request is valid
         if (error == ARUPDATER_OK)
         {
-            if (*dataPtr != NULL)
+            if (dataPtr != NULL)
             {
-                (*dataPtr)[dataSize] = '\0';
-                if (strlen(*dataPtr) != dataSize)
+                (dataPtr)[dataSize] = '\0';
+                if (strlen(dataPtr) != dataSize)
                 {
                     error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
                 }
@@ -1102,7 +1100,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         // check if plf file need to be updated
         if (error == ARUPDATER_OK)
         {
-            data = *dataPtr;
+            data = dataPtr;
             char *result;
             result = strtok(data, "|");
             
@@ -1138,11 +1136,6 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         {
             free(device);
             device = NULL;
-        }
-        if (dataPtr != NULL)
-        {
-            free(dataPtr);
-            dataPtr = NULL;
         }
         
         product++;
