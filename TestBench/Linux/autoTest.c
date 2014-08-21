@@ -114,9 +114,7 @@ int main(int argc, char *argv[])
     eARSAL_ERROR arsalError = ARSAL_OK;
     ARUPDATER_Manager_t *manager = NULL;
     
-    // this md5Manager is useless with Unix target
     ARSAL_MD5_Manager_t* md5Manager = ARSAL_MD5_Manager_New(&arsalError);
-    fprintf(stderr, "****** Watch out, This autotest can't succeed on Unix because md5 checksum is not implemented ****\n");
     if (arsalError != ARSAL_OK)
     {
         error = ARUPDATER_ERROR_SYSTEM;
@@ -124,6 +122,7 @@ int main(int argc, char *argv[])
     
     if (error == ARUPDATER_OK)
     {
+        ARSAL_MD5_Manager_Init(md5Manager);
         manager = ARUPDATER_Manager_New(&error);
     }
     
