@@ -81,7 +81,7 @@ void test_http_should_download_callback(void* arg, int nbDownload, eARUPDATER_ER
 
 void test_willDownloadPlfCallback(void* arg, eARDISCOVERY_PRODUCT product, const char *const remotePlfVersion)
 {
-    fprintf("Download will start for product : %i (version : %s)\n",product, remotePlfVersion);
+    fprintf(stderr, "Download will start for product : %i (version : %s)\n",product, remotePlfVersion);
 }
 
 void test_http_download_completion_callback(void* arg, eARUPDATER_ERROR error)
