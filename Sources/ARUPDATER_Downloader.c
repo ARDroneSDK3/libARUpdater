@@ -491,6 +491,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         // check if data fetch from request is valid
         if (error == ARUPDATER_OK)
         {
+            dataPtr = realloc(dataPtr, dataSize + 1);
             if (dataPtr != NULL)
             {
                 (dataPtr)[dataSize] = '\0';
@@ -562,6 +563,8 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         productIndex++;
     }
 
+    free(plfFolder);
+    plfFolder = NULL;
 
     if (err != NULL)
     {
