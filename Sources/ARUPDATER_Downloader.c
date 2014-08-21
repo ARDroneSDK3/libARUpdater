@@ -331,7 +331,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     char *deviceFolder = NULL;
     char *existingPlfFilePath = NULL;
     uint32_t dataSize;
-    char **dataPtr = NULL;
+    char *dataPtr = NULL;
     char *data;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
@@ -358,10 +358,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
-
-        dataPtr = malloc(sizeof(char*));
-
-
+        
         // read the header of the plf file
         deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
         strcpy(deviceFolder, plfFolder);
@@ -469,8 +466,8 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             strcat(endUrl, device);
             strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_URL);
             strcat(endUrl, params);
-
-            utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)dataPtr, &dataSize, NULL, NULL);
+            
+            utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)&dataPtr, &dataSize, NULL, NULL);
             if (utilsError != ARUTILS_OK)
             {
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
@@ -494,10 +491,10 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         // check if data fetch from request is valid
         if (error == ARUPDATER_OK)
         {
-            if (*dataPtr != NULL)
+            if (dataPtr != NULL)
             {
-                (*dataPtr)[dataSize] = '\0';
-                if (strlen(*dataPtr) != dataSize)
+                (dataPtr)[dataSize] = '\0';
+                if (strlen(dataPtr) != dataSize)
                 {
                     error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
                 }
@@ -507,7 +504,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         // check if plf file need to be updated
         if (error == ARUPDATER_OK)
         {
-            data = *dataPtr;
+            data = dataPtr;
             char *result;
             result = strtok(data, "|");
 
