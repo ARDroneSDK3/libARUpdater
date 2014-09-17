@@ -998,9 +998,14 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
         }
     }
-    int product = 0;
-    while ((error == ARUPDATER_OK) && (product < ARDISCOVERY_PRODUCT_MAX))
+    //int product = 0;
+    int productIndex = 0;
+    while ((error == ARUPDATER_OK) && (productIndex < manager->downloader->productCount))
     {
+        // for each product, check if update is needed
+        eARDISCOVERY_PRODUCT product = manager->downloader->productList[productIndex];
+    //while ((error == ARUPDATER_OK) && (product < ARDISCOVERY_PRODUCT_MAX))
+    //{
         // for each product, check if update is needed
         uint16_t productId = ARDISCOVERY_getProductID(product);
         
@@ -1067,6 +1072,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)&dataPtr, &dataSize, NULL, NULL);
             if (utilsError != ARUTILS_OK)
             {
+                ARSAL_PRINT (ARSAL_PRINT_DEBUG, ARUPDATER_DOWNLOADER_TAG, "%d", utilsError);
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
             }
             
@@ -1138,7 +1144,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             device = NULL;
         }
         
-        product++;
+        productIndex++;
     }
     
     if (err != NULL)
@@ -1146,5 +1152,5 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         *err = error;
     }
     *informations = manager->downloader->downloadInfos;
-    return  product;
+    return  productIndex;
 }
