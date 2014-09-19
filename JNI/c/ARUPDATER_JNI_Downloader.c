@@ -284,7 +284,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownload
 
     nbInformation = ARUPDATER_Downloader_GetUpdatesInfoSync(nativeManager, &result, &informations);
     
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", informations);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%p, %d", informations, nbInformation);
     if (result == ARUPDATER_OK)
     {
         ret = (*env)->NewObjectArray(env, nbInformation, classDownloadInfo, NULL);
@@ -292,7 +292,12 @@ JNIEXPORT jobjectArray JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownload
         {   int i = 0;
             for (i = 0; i < nbInformation; i++)
             {
-                jobject downloadInfo = ARUPDATER_JNI_Downloader_NewDownloadInfo(env, informations[i]);
+                ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", informations[i]);
+                jobject downloadInfo = NULL;
+                if (informations[i] != NULL)
+                {
+                    downloadInfo = ARUPDATER_JNI_Downloader_NewDownloadInfo(env, informations[i]);
+                }
                 (*env)->SetObjectArrayElement(env, ret, i, downloadInfo);
             }
         }

@@ -1123,11 +1123,11 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
                     remoteSize = atoi(remoteSizeStr);
                 }
                 char *remoteVersion = strtok(NULL, "|");
-                manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
+                manager->downloader->downloadInfos[productIndex] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
             }
             else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
-                manager->downloader->downloadInfos[product] = NULL;
+                manager->downloader->downloadInfos[productIndex] = NULL;
             }
             else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_APP_VERSION_OUT_TO_DATE) == 0)
             {
