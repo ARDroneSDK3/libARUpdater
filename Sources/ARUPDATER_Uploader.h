@@ -47,6 +47,7 @@ struct ARUPDATER_Uploader_t
 {
     char *rootFolder;
     eARDISCOVERY_PRODUCT product;
+    int isAndroidApp;
     ARUTILS_Manager_t *ftpManager;
     
     int isRunning;
@@ -71,5 +72,8 @@ struct ARUPDATER_Uploader_t
 
 void ARUPDATER_Uploader_ProgressCallback(void* arg, float percent);
 void ARUPDATER_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR error);
+
+eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *manager);
+eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager);
 
 #endif

@@ -45,7 +45,7 @@ public class ARUpdaterUploader
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, long utilsManager, long md5Manager, int discoveryProduct, 
+    private native int nativeNew(long manager, String rootFolder, long utilsManager, long md5Manager, int isAndroidApp, int discoveryProduct,
     	ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
     	ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
@@ -85,11 +85,12 @@ public class ARUpdaterUploader
      * @return void
      * @throws ARUpdaterException if error
      */
-    public void createUpdaterUploader(String rootFolder, ARUtilsManager utilsManager, ARSALMd5Manager md5Manager, ARDISCOVERY_PRODUCT_ENUM product, 
+    public void createUpdaterUploader(String rootFolder, ARUtilsManager utilsManager, ARSALMd5Manager md5Manager, boolean isAndroidApp, ARDISCOVERY_PRODUCT_ENUM product,
         ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
         ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
-    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), md5Manager.getNativeManager(), product.getValue(), plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
+        int isAndroidAppInt = (isAndroidApp) ? 1 : 0;
+    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), md5Manager.getNativeManager(), isAndroidAppInt, product.getValue(), plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 

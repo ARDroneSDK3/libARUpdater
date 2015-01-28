@@ -61,7 +61,7 @@
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, int isAndroidApp, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Uploader_t *uploader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
@@ -112,6 +112,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         }
         
         uploader->product = product;
+        uploader->isAndroidApp = isAndroidApp;
         uploader->ftpManager = ftpManager;
         uploader->md5Manager = md5Manager;
         
@@ -199,7 +200,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
 void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
- 
+    
     ARUPDATER_Manager_t *manager = NULL;
     if (managerArg != NULL)
     {
@@ -209,6 +210,136 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
+    
+    if ((manager != NULL) && (manager->uploader != NULL))
+    {
+        if ((manager->uploader->product == ARDISCOVERY_PRODUCT_MINIDRONE) && (manager->uploader->isAndroidApp == 1))
+        {
+            error = ARUPDATER_Uploader_ThreadRunAndroidDelos(manager);
+        }
+        else
+        {
+            // upload plf the normal way
+            error = ARUPDATER_Uploader_ThreadRunNormal(manager);
+        }
+    }
+    else
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    return (void*)error;
+}
+
+eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *manager)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    
+    if ((manager != NULL) && (manager->uploader != NULL))
+    {
+        manager->uploader->isRunning = 1;
+    }
+    
+    eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
+    
+    char *sourceFileFolder = NULL;
+    char *sourceFilePath = NULL;
+    char *device = NULL;
+    char *fileName = NULL;
+    
+    uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
+    device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
+    snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+    
+    sourceFileFolder = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
+    strcpy(sourceFileFolder, manager->uploader->rootFolder);
+    strcat(sourceFileFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+    strcat(sourceFileFolder, device);
+    strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+    
+    fileName = NULL;
+    error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
+    
+    if (error == ARUPDATER_OK)
+    {
+        sourceFilePath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
+        strcpy(sourceFilePath, sourceFileFolder);
+        strcat(sourceFilePath, fileName);
+        
+        // by default, do not resume an upload
+        eARDATATRANSFER_UPLOADER_RESUME resumeMode = ARDATATRANSFER_UPLOADER_RESUME_FALSE;
+        
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        // create a new uploader
+        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, "", sourceFilePath, ARUPDATER_Uploader_ProgressCallback, manager, ARUPDATER_Uploader_CompletionCallback, manager, resumeMode);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+    }
+    
+    if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
+    {
+        manager->uploader->isUploadThreadRunning = 1;
+        ARDATATRANSFER_Uploader_ThreadRun(manager->uploader->dataTransferManager);
+        manager->uploader->isUploadThreadRunning = 0;
+        if (manager->uploader->uploadError != ARDATATRANSFER_OK)
+        {
+            ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG, "ARDataTransferError = %d", manager->uploader->uploadError);
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
+    }
+    
+    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+    if (ARUPDATER_OK == error)
+    {
+        dataTransferError = ARDATATRANSFER_Uploader_Delete(manager->uploader->dataTransferManager);
+        if (ARDATATRANSFER_OK != dataTransferError)
+        {
+            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+        }
+    }
+    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+    
+    if (error != ARUPDATER_OK)
+    {
+        ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (error));
+    }
+    
+    if (sourceFileFolder != NULL)
+    {
+        free(sourceFileFolder);
+    }
+    if (sourceFilePath != NULL)
+    {
+        free(sourceFilePath);
+    }
+    if (device != NULL)
+    {
+        free(device);
+    }
+    if (fileName != NULL)
+    {
+        free(fileName);
+    }
+
+    if ((manager != NULL) && (manager->uploader != NULL))
+    {
+        manager->uploader->isRunning = 0;
+    }
+    
+    if (manager->uploader->completionCallback != NULL)
+    {
+        manager->uploader->completionCallback(manager->uploader->completionArg, error);
+    }
+    
+    return error;
+}
+
+eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
     
     if ((manager != NULL) && (manager->uploader != NULL))
     {
@@ -506,7 +637,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         manager->uploader->completionCallback(manager->uploader->completionArg, error);
     }
     
-    return (void*)error;
+    return error;
 }
 
 void ARUPDATER_Uploader_ProgressCallback(void* arg, float percent)

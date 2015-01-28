@@ -86,7 +86,7 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nat
     return jret;
 }
 
-JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jUtilsManager, jlong jMD5Manager, jint jProduct, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeNew(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jlong jUtilsManager, jlong jMD5Manager, jint jIsAndroidApp, jint jProduct, jobject jProgressListener, jobject jProgressArgs, jobject jCompletionListener, jobject jCompletionArgs)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     ARUTILS_Manager_t *nativeFtpManager = (ARUTILS_Manager_t *)(intptr_t)jUtilsManager;
@@ -138,7 +138,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeN
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Uploader_New(nativeManager, rootFolder, nativeFtpManager, nativeMD5Manager, (eARDISCOVERY_PRODUCT)jProduct, ARUPDATER_JNI_Uploader_ProgressCallback, callbacks, ARUPDATER_JNI_Uploader_CompletionCallback, callbacks);
+        result = ARUPDATER_Uploader_New(nativeManager, rootFolder, nativeFtpManager, nativeMD5Manager, jIsAndroidApp, (eARDISCOVERY_PRODUCT)jProduct, ARUPDATER_JNI_Uploader_ProgressCallback, callbacks, ARUPDATER_JNI_Uploader_CompletionCallback, callbacks);
     }
 
     if ((result != ARUPDATER_OK) && (callbacks != NULL))
