@@ -35,7 +35,10 @@ import java.lang.Runnable;
 import com.parrot.arsdk.arsal.ARSALPrint;
 import com.parrot.arsdk.arsal.ARSALMd5Manager;
 import com.parrot.arsdk.ardiscovery.ARDISCOVERY_PRODUCT_ENUM;
-
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Collections;
 
 public class ARUpdaterDownloader
 {
@@ -55,6 +58,7 @@ public class ARUpdaterDownloader
     private native int nativeCheckUpdatesAsync(long manager);
     private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
     private native ARUpdaterDownloadInfo[] nativeGetUpdatesInfoSync(long manager) throws ARUpdaterException;
+    private native void nativeGetBlacklistedFirmwareVersionsSync(long manager, int[] productArray, Object[] blacklistedVersions) throws ARUpdaterException;
 
     private long nativeManager = 0;
     private Runnable downloaderRunnable = null;
@@ -180,11 +184,11 @@ public class ARUpdaterDownloader
 
     public ARUPDATER_ERROR_ENUM setUpdatesProductList(ARDISCOVERY_PRODUCT_ENUM[] productEnumArray)
     {
-	int[] productArray = new int[productEnumArray.length];
-	for (int i=0; i<productEnumArray.length; i++)
-	{
+        int[] productArray = new int[productEnumArray.length];
+        for (int i=0; i<productEnumArray.length; i++)
+        {
             productArray[i] = productEnumArray[i].getValue();
-	}
+        }
         int result = nativeSetUpdatesProductList(nativeManager, productArray);
 
         ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
@@ -223,5 +227,29 @@ public class ARUpdaterDownloader
         ARUpdaterDownloadInfo[] infos = nativeGetUpdatesInfoSync(nativeManager);
 
         return infos;
+    }
+    
+    public HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> getBlacklistedVersionSync() throws ARUpdaterException
+    {
+        HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> blacklistDict = new HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>>();
+        int[] productArray = new int[ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue()];
+        
+        Object[] blacklistedVersionArray = new Object[ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue()];
+        
+        nativeGetBlacklistedFirmwareVersionsSync(nativeManager, productArray, blacklistedVersionArray);
+        for (int i = 0; i < ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue(); i++)
+        {
+            ARDISCOVERY_PRODUCT_ENUM product = ARDISCOVERY_PRODUCT_ENUM.getFromValue(productArray[i]);
+            String[] blacklistedVersionsForThisProduct = (String[])blacklistedVersionArray[i];
+            if (blacklistedVersionsForThisProduct != null)
+            {
+                Set<String> blacklistedStringArr = new HashSet<String>();
+                Collections.addAll(blacklistedStringArr, blacklistedVersionsForThisProduct);
+
+                blacklistDict.put(product, blacklistedStringArr);
+            }
+        }
+        
+        return blacklistDict;
     }
 }

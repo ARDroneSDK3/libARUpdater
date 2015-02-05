@@ -45,6 +45,7 @@
 #include "ARUPDATER_Manager.h"
 #include "ARUPDATER_Downloader.h"
 #include "ARUPDATER_Utils.h"
+#include <json/json.h>
 
 /* ***************************************
  *
@@ -56,12 +57,14 @@
 #define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
 #define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
 #define ARUPDATER_DOWNLOADER_PHP_URL                       "/update.php"
+#define ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL        "/firmware_blacklist.php"
 #define ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH              255
 #define ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT     10
 #define ARUPDATER_DOWNLOADER_PRODUCT_PARAM                 "?product="
 #define ARUPDATER_DOWNLOADER_SERIAL_PARAM                  "&serialNo="
 #define ARUPDATER_DOWNLOADER_VERSION_PARAM                 "&version="
 #define ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM            "&platform="
+#define ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM_BEGIN      "?platform="
 #define ARUPDATER_DOWNLOADER_APP_VERSION_PARAM             "&appVersion="
 #define ARUPDATER_DOWNLOADER_VERSION_SEPARATOR             "."
 #define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX        "tmp_"
@@ -80,6 +83,8 @@
 
 #define ARUPDATER_DOWNLOADER_ANDROID_PLATFORM_NAME         "Android"
 #define ARUPDATER_DOWNLOADER_IOS_PLATFORM_NAME             "iOS"
+
+#define ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC         10
 
 /* ***************************************
  *
@@ -161,6 +166,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         downloader->updateHasBeenChecked = 0;
 
         downloader->requestConnection = NULL;
+        downloader->requestBlacklistConnection = NULL;
         downloader->downloadConnection = NULL;
 
         downloader->downloadInfos = malloc(sizeof(ARUPDATER_DownloadInformation_t*) * ARDISCOVERY_PRODUCT_MAX);
@@ -188,12 +194,50 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
                 manager->downloader->productList[i] = i;
             }
         }
+        downloader->blacklistedVersions = calloc(ARDISCOVERY_PRODUCT_MAX, sizeof(ARUPDATER_Manager_BlacklistedFirmware_t*));
+        if (downloader->blacklistedVersions == NULL)
+        {
+            err = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            for (i=0; i<ARDISCOVERY_PRODUCT_MAX; i++)
+            {
+                downloader->blacklistedVersions[i] = malloc(sizeof(ARUPDATER_Manager_BlacklistedFirmware_t));
+                if (downloader->blacklistedVersions[i] != NULL)
+                {
+                    downloader->blacklistedVersions[i]->product = i;
+                    downloader->blacklistedVersions[i]->versions = calloc(ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC, sizeof(char**));
+                    downloader->blacklistedVersions[i]->nbVersionAllocated = ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC;
+                    downloader->blacklistedVersions[i]->nbVersionBlacklisted = 0;
+                }
+            }
+            
+            // add here blacklisted version for RollingSpider
+            /* Example how to add blacklisted version in app
+             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE]->versions[0] = strdup("2.0.0");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE]->nbVersionBlacklisted = 1;*/
+            
+            // add here blacklisted version for JS
+            
+            // add here blacklisted version for Bebop
+        }
     }
 
     if (err == ARUPDATER_OK)
     {
         int resultSys = ARSAL_Mutex_Init(&manager->downloader->requestLock);
 
+        if (resultSys != 0)
+        {
+            err = ARUPDATER_ERROR_SYSTEM;
+        }
+    }
+    
+    if (err == ARUPDATER_OK)
+    {
+        int resultSys = ARSAL_Mutex_Init(&manager->downloader->requestBlacklistLock);
+        
         if (resultSys != 0)
         {
             err = ARUPDATER_ERROR_SYSTEM;
@@ -243,6 +287,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
             else
             {
                 ARSAL_Mutex_Destroy(&manager->downloader->requestLock);
+                ARSAL_Mutex_Destroy(&manager->downloader->requestBlacklistLock);
                 ARSAL_Mutex_Destroy(&manager->downloader->downloadLock);
 
                 free(manager->downloader->rootFolder);
@@ -258,15 +303,27 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
                         ARUPDATER_DownloadInformation_Delete(&downloadInfo);
                         manager->downloader->downloadInfos[product] = NULL;
                     }
+                    
+                    ARUPDATER_Manager_BlacklistedFirmware_t *blacklistedVersions = manager->downloader->blacklistedVersions[product];
+                    int j = 0;
+                    for (j = 0; j < blacklistedVersions->nbVersionBlacklisted; j++)
+                    {
+                        if (blacklistedVersions->versions[j] != NULL)
+                        {
+                            free(blacklistedVersions->versions[j]);
+                        }
+                    }
+                    free(blacklistedVersions->versions);
                 }
                 free(manager->downloader->downloadInfos);
-
+                free(manager->downloader->blacklistedVersions);
+                
                 if (manager->downloader->productList != NULL)
                 {
                     free(manager->downloader->productList);
                     manager->downloader->productList = NULL;
                 }
-
+                
                 free(manager->downloader);
                 manager->downloader = NULL;
             }
@@ -928,6 +985,13 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
             ARUTILS_Http_Connection_Cancel(manager->downloader->requestConnection);
         }
         ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
+        
+        ARSAL_Mutex_Lock(&manager->downloader->requestBlacklistLock);
+        if (manager->downloader->requestBlacklistConnection != NULL)
+        {
+            ARUTILS_Http_Connection_Cancel(manager->downloader->requestBlacklistConnection);
+        }
+        ARSAL_Mutex_Unlock(&manager->downloader->requestBlacklistLock);
 
         ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
         if (manager->downloader->downloadConnection != NULL)
@@ -990,6 +1054,209 @@ char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platf
     return toReturn;
 }
 
+eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDATER_Manager_t* manager, ARUPDATER_Manager_BlacklistedFirmware_t ***blacklistedFirmwares)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    int nbProducts = 0;
+    
+    ARSAL_Sem_t requestSem;
+    char *platform = NULL;
+    uint32_t dataSize;
+    char *dataPtr = NULL;
+    char *data;
+    eARUTILS_ERROR utilsError = ARUTILS_OK;
+    json_object *jsonObj = NULL;
+    array_list *blacklistedRemoteList = NULL;
+    char *device = NULL;
+    
+    if (manager == NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    if (manager->downloader == NULL)
+    {
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+    }
+    
+    if (error == ARUPDATER_OK)
+    {
+        platform = ARUPDATER_Downloader_GetPlatformName(manager->downloader->appPlatform);
+        if (platform == NULL)
+        {
+            error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
+        }
+    }
+    
+    // init the request semaphore
+    ARSAL_Mutex_Lock(&manager->downloader->requestBlacklistLock);
+    if (error == ARUPDATER_OK)
+    {
+        int resultSys = ARSAL_Sem_Init(&requestSem, 0, 0);
+        if (resultSys != 0)
+        {
+            error = ARUPDATER_ERROR_SYSTEM;
+        }
+    }
+    // init the connection
+    if (error == ARUPDATER_OK)
+    {
+        manager->downloader->requestBlacklistConnection = ARUTILS_Http_Connection_New(&requestSem, ARUPDATER_DOWNLOADER_SERVER_URL, 80, HTTPS_PROTOCOL_FALSE, NULL, NULL, &utilsError);
+        if (utilsError != ARUTILS_OK)
+        {
+            ARUTILS_Http_Connection_Delete(&manager->downloader->requestBlacklistConnection);
+            manager->downloader->requestBlacklistConnection = NULL;
+            ARSAL_Sem_Destroy(&requestSem);
+            error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
+        }
+    }
+    ARSAL_Mutex_Unlock(&manager->downloader->requestBlacklistLock);
+    
+    // request the php
+    if (error == ARUPDATER_OK)
+    {
+        char buffer[ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT];
+        // create the url params
+        char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
+        
+        strcpy(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM_BEGIN);
+        strcat(params, platform);
+        
+        strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
+        strcat(params, manager->downloader->appVersion);
+        
+        char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL) + strlen(params) + 1);
+        strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
+        strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL);
+        strcat(endUrl, params);
+
+        utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestBlacklistConnection, endUrl, (uint8_t**)&dataPtr, &dataSize, NULL, NULL);
+        if (utilsError != ARUTILS_OK)
+        {
+            ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "Error : %d", utilsError);
+            error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
+        }
+        ARSAL_Mutex_Lock(&manager->downloader->requestBlacklistLock);
+        if (manager->downloader->requestBlacklistConnection != NULL)
+        {
+            ARUTILS_Http_Connection_Delete(&manager->downloader->requestBlacklistConnection);
+            manager->downloader->requestBlacklistConnection = NULL;
+            ARSAL_Sem_Destroy(&requestSem);
+        }
+        ARSAL_Mutex_Unlock(&manager->downloader->requestBlacklistLock);
+        free(endUrl);
+        endUrl = NULL;
+        free(params);
+        params = NULL;
+    }
+    
+    // check if data fetch from request is valid
+    if (error == ARUPDATER_OK)
+    {
+        if (dataPtr != NULL)
+        {
+            (dataPtr)[dataSize] = '\0';
+            if (strlen(dataPtr) != dataSize)
+            {
+                error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
+            }
+        }
+    }
+    
+    // use blacklist info from server
+    if (error == ARUPDATER_OK)
+    {
+        data = dataPtr;
+        char *result;
+        result = strtok(data, "|");
+        
+        // if the server has no error
+        if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
+        {
+            char *jsonAsStr = strtok(NULL, "|");
+            if (jsonAsStr != NULL)
+            {
+                jsonObj = json_tokener_parse(jsonAsStr);
+            }
+            
+            if (jsonObj == NULL)
+            {
+                error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+                ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "Blacklist json is null");
+            }
+        }
+        else
+        {
+            error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+        }
+    }
+    
+    // add all blacklisted versions from server to the blacklisted versions
+    if (error == ARUPDATER_OK)
+    {
+        // for all products
+        int i = 0;
+        for (i = 0; (error == ARUPDATER_OK) && (i < ARDISCOVERY_PRODUCT_MAX); i++)
+        {
+            uint16_t productId = ARDISCOVERY_getProductID(manager->downloader->blacklistedVersions[i]->product);
+            
+            device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
+            snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+            
+            json_object *productJsonObj = json_object_object_get (jsonObj, device);
+            if (productJsonObj != NULL)
+            {
+                blacklistedRemoteList = json_object_get_array(productJsonObj);
+            }
+            
+            // if it exists blacklisted version for this product
+            if (blacklistedRemoteList != NULL)
+            {
+                // add each blacklisted version to the existing list
+                int j = 0;
+                for (j = 0; (error == ARUPDATER_OK) && (j < blacklistedRemoteList->length); j++)
+                {
+                    json_object *valueJsonObj = array_list_get_idx (blacklistedRemoteList, j);
+                    if ((valueJsonObj != NULL) && (json_object_is_type(valueJsonObj, json_type_string)))
+                    {
+                        const char *blacklistedVersion = json_object_get_string(valueJsonObj);
+                        // add it to the existing blacklist
+                        // if versions has not enough allocated place
+                        if (manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted >= manager->downloader->blacklistedVersions[i]->nbVersionAllocated)
+                        {
+                            char** newVersions = realloc(manager->downloader->blacklistedVersions[i]->versions, ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC * sizeof(char**));
+                            if (newVersions != NULL)
+                            {
+                                manager->downloader->blacklistedVersions[i]->versions = newVersions;
+                                manager->downloader->blacklistedVersions[i]->nbVersionAllocated += ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC;
+                            }
+                            else
+                            {
+                                error = ARUPDATER_ERROR_ALLOC;
+                            }
+                        }
+                        
+                        // recheck if we have enough place
+                        if ((error == ARUPDATER_OK) && (manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted <= manager->downloader->blacklistedVersions[i]->nbVersionAllocated))
+                        {
+                            manager->downloader->blacklistedVersions[i]->versions[manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted] = strdup(blacklistedVersion);
+                            manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted++;
+                        }
+                    }
+                }
+            }
+            
+            if (device != NULL)
+            {
+                free(device);
+                device = NULL;
+            }
+        }
+    }
+    
+    *blacklistedFirmwares = manager->downloader->blacklistedVersions;
+    return error;
+}
 
 int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPDATER_ERROR *err, ARUPDATER_DownloadInformation_t*** informations)
 {

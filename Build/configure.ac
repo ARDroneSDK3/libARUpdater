@@ -62,6 +62,7 @@ AR_DEPENDS([libARSAL], [Y], [libARSAL/ARSAL.h])
 AR_DEPENDS([libARDataTransfer], [Y], [libARDataTransfer/ARDataTransfer.h])
 AR_DEPENDS([libARDiscovery], [Y], [libARDiscovery/ARDiscovery.h])
 AR_DEPENDS([libCurl], [Y], [curl/curl.h curl/curlbuild.h curl/curlver.h], [N])
+AR_DEPENDS([json], [N], [json/json.h], [N])
 
 ##########################################################################
 # Checks for programs.
@@ -96,6 +97,8 @@ AC_HEADER_STDC
 ##########################################################################
 # Check headers
 ##########################################################################
+
+AC_CHECK_HEADERS([json/json.h])
 
 # Check for CoreBluetooth.h
 AC_LANG_PUSH([Objective C])

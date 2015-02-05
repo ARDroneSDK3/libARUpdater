@@ -295,6 +295,73 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 }
 
 /**
+ * @brief Get blacklisted versions synchonoulsy
+ */
+JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeGetBlacklistedFirmwareVersionsSync(JNIEnv *env, jobject jThis, jlong jManager, jintArray jProductArray, jobjectArray jBlacklistedVersionArray)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    ARUPDATER_Manager_BlacklistedFirmware_t** blacklistedVersions = NULL;
+    
+    if (jProductArray == NULL || jBlacklistedVersionArray == NULL)
+    {
+        result = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    
+    result = ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(nativeManager, &blacklistedVersions);
+    
+    if (result == ARUPDATER_OK)
+    {
+        // create an array that contains all the blacklisted firmware.
+        // at the same id in the jProductArray is the product
+        int i = 0;
+        for (i = 0; i < ARDISCOVERY_PRODUCT_MAX; i++)
+        {
+            if (blacklistedVersions[i] != NULL)
+            {
+                eARDISCOVERY_PRODUCT product = blacklistedVersions[i]->product;
+                int nbBlacklistedVersionsForThisProduct = blacklistedVersions[i]->nbVersionBlacklisted;
+                
+                jobjectArray blacklistedVersionsForThisProduct = (*env)->NewObjectArray(env, nbBlacklistedVersionsForThisProduct, (*env)->FindClass(env, "java/lang/String")
+, NULL);
+                if (blacklistedVersionsForThisProduct != NULL)
+                {
+                    int blacklistedVersionIdx = 0;
+                    for (blacklistedVersionIdx = 0; blacklistedVersionIdx < nbBlacklistedVersionsForThisProduct; blacklistedVersionIdx++)
+                    {
+                        jstring jBlacklistedVersion = (*env)->NewStringUTF(env, blacklistedVersions[i]->versions[blacklistedVersionIdx]);
+                        
+                        if (jBlacklistedVersion == NULL)
+                        {
+                            result = JNI_FAILED;
+                            ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "error : failed to initiate a jstring : %d", result);
+                        }
+                        
+                        if (result == ARUPDATER_OK)
+                        {
+                            (*env)->SetObjectArrayElement(env, blacklistedVersionsForThisProduct, blacklistedVersionIdx, jBlacklistedVersion);
+                        }
+                        
+                        if (jBlacklistedVersion != NULL)
+                        {
+                            (*env)->DeleteLocalRef(env, jBlacklistedVersion);
+                        }
+                    }
+                }
+                (*env)->SetObjectArrayElement(env, jBlacklistedVersionArray, i, blacklistedVersionsForThisProduct);
+                (*env)->SetIntArrayRegion(env, jProductArray, i, 1, &product);
+            }
+        }
+    }
+    
+    if (result != ARUPDATER_OK)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_JNI_DOWNLOADER_TAG, "error during ARUPDATER_JNI_Downloader_GetBlacklistedFirmwareVersions: %d", result);
+        ARUPDATER_JNI_Manager_ThrowARUpdaterException(env, result);
+    }
+}
+
+/**
  * @brief Get update information from server synchrounously
  */
 JNIEXPORT jobjectArray JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeGetUpdatesInfoSync(JNIEnv *env, jobject jThis, jlong jManager)

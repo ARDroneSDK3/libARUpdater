@@ -49,19 +49,6 @@
 #define ARUPDATER_MANAGER_FULL_VERSION_BUFFER_SIZE      127
 #define ARUPDATER_MANAGER_VERSION_SEPARATOR             "."
 
-typedef struct ARUPDATER_Manager_PlfVersion
-{
-    eARDISCOVERY_PRODUCT product;
-    int version;
-    int edition;
-    int extension;
-} ARUPDATER_Manager_PlfVersion;
-
-struct ARUPDATER_Manager_PlfVersion blackListedVersions[] = {
-    // PUT HERE ALL BLACKLISTED VERSIONS
-    // {product, version, edition, extension}
-};
-
 ARUPDATER_Manager_t* ARUPDATER_Manager_New(eARUPDATER_ERROR *error)
 {
     ARUPDATER_Manager_t *manager = NULL;
@@ -249,25 +236,4 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
     }
     
     return retVal;
-}
-
-int ARUPDATER_Manager_PlfVersionIsBlacklisted(eARDISCOVERY_PRODUCT product, int version, int edition, int extension)
-{
-    int isBlackListed = 0;
-    int nbBlackListedVersions = sizeof(blackListedVersions) / sizeof(ARUPDATER_Manager_PlfVersion);
-    int i = 0;
-    for (i = 0; i < nbBlackListedVersions; i++)
-    {
-        ARUPDATER_Manager_PlfVersion blackListedVersion = blackListedVersions[i];
-        if ((product == blackListedVersion.product) &&
-            (version == blackListedVersion.version) &&
-            (edition == blackListedVersion.edition) &&
-            (extension == blackListedVersion.extension))
-        {
-            isBlackListed = 1;
-            break;
-        }
-    }
-    
-    return isBlackListed;
 }

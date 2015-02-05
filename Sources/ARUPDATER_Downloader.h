@@ -61,6 +61,7 @@ struct ARUPDATER_Downloader_t
 
     int updateHasBeenChecked;
     ARUPDATER_DownloadInformation_t **downloadInfos;
+    ARUPDATER_Manager_BlacklistedFirmware_t **blacklistedVersions;
     eARDISCOVERY_PRODUCT *productList;
     int productCount;
 
@@ -70,6 +71,9 @@ struct ARUPDATER_Downloader_t
     ARSAL_Mutex_t downloadLock;
     ARUTILS_Http_Connection_t *requestConnection;
     ARUTILS_Http_Connection_t *downloadConnection;
+    
+    ARSAL_Mutex_t requestBlacklistLock;
+    ARUTILS_Http_Connection_t *requestBlacklistConnection;
 
     ARUPDATER_Downloader_ShouldDownloadPlfCallback_t shouldDownloadCallback;
     ARUPDATER_Downloader_WillDownloadPlfCallback_t willDownloadPlfCallback;

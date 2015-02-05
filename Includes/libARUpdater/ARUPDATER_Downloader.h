@@ -59,6 +59,15 @@ typedef struct ARUPDATER_DownloadInformation_t
     
 }ARUPDATER_DownloadInformation_t;
 
+typedef struct ARUPDATER_Manager_BlacklistedFirmware_t
+{
+    eARDISCOVERY_PRODUCT product;
+    char **versions;
+    int nbVersionAllocated;
+    int nbVersionBlacklisted;
+} ARUPDATER_Manager_BlacklistedFirmware_t;
+
+
 typedef struct ARUPDATER_Downloader_t ARUPDATER_Downloader_t;
 
 /**
@@ -185,4 +194,12 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
  * @return 1 if the download thread is running, 0 otherwise
  */
 int ARUPDATER_Downloader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_ERROR *error);
+
+/**
+ * @brief get all blacklisted firmware versions
+ * @param manager : pointer on the manager
+ * @param[out] blacklistedFirmwares : the list of blacklisted versions
+ * @return ARUPDATER_OK if operation went well, a description of the error otherwise
+ */
+eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDATER_Manager_t* manager, ARUPDATER_Manager_BlacklistedFirmware_t ***blacklistedFirmwares);
 #endif

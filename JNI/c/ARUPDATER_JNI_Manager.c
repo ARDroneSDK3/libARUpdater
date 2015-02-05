@@ -223,20 +223,6 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
     return isUpToDate;
 }
 
-/**
- * @brief get if a given plf file is black listed
- * @param[in] product : the plf of the product to be tested
- * @param[in] version : the version of the remote plf
- * @param[in] edition : the edition of the remote plf
- * @param[in] extension : the extension of the remote plf
- * @return true if the version is black listed
- */
-JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativePlfVersionIsBlacklisted(JNIEnv *env, jobject jThis, jint jProduct, jint jVersion, jint jEdition, jint jExtension)
-{
-    int blacklisted = ARUPDATER_Manager_PlfVersionIsBlacklisted((eARDISCOVERY_PRODUCT)jProduct, jVersion, jEdition, jExtension);
-    return blacklisted;
-}
-
 /*****************************************
  *
  *             Private implementation:
