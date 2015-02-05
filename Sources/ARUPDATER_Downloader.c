@@ -223,8 +223,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
             // add here blacklisted version for Bebop
             
             // add here blacklisted version for SkyController
-            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER]->versions[0] = strdup("1.2.1");
-            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER]->nbVersionBlacklisted = 1;
         }
     }
 
