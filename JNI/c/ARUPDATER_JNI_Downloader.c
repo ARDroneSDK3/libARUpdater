@@ -297,7 +297,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 /**
  * @brief Get blacklisted versions synchonoulsy
  */
-JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeGetBlacklistedFirmwareVersionsSync(JNIEnv *env, jobject jThis, jlong jManager, jintArray jProductArray, jobjectArray jBlacklistedVersionArray)
+JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeGetBlacklistedFirmwareVersionsSync(JNIEnv *env, jobject jThis, jlong jManager, jint jAlsoCheckRemote, jintArray jProductArray, jobjectArray jBlacklistedVersionArray)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
@@ -308,7 +308,7 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
         result = ARUPDATER_ERROR_BAD_PARAMETER;
     }
     
-    result = ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(nativeManager, &blacklistedVersions);
+    result = ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(nativeManager, jAlsoCheckRemote, &blacklistedVersions);
     
     if (result == ARUPDATER_OK)
     {

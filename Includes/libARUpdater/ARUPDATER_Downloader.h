@@ -198,8 +198,9 @@ int ARUPDATER_Downloader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATE
 /**
  * @brief get all blacklisted firmware versions
  * @param manager : pointer on the manager
+ * @param[in] alsoCheckRemote : 1 if we should check on the internet for balcklisted version
  * @param[out] blacklistedFirmwares : the list of blacklisted versions
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  */
-eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDATER_Manager_t* manager, ARUPDATER_Manager_BlacklistedFirmware_t ***blacklistedFirmwares);
+eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDATER_Manager_t* manager, int alsoCheckRemote, ARUPDATER_Manager_BlacklistedFirmware_t ***blacklistedFirmwares);
 #endif

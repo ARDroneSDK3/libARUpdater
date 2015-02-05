@@ -58,7 +58,7 @@ public class ARUpdaterDownloader
     private native int nativeCheckUpdatesAsync(long manager);
     private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
     private native ARUpdaterDownloadInfo[] nativeGetUpdatesInfoSync(long manager) throws ARUpdaterException;
-    private native void nativeGetBlacklistedFirmwareVersionsSync(long manager, int[] productArray, Object[] blacklistedVersions) throws ARUpdaterException;
+    private native void nativeGetBlacklistedFirmwareVersionsSync(long manager, int alsoCheckRemote, int[] productArray, Object[] blacklistedVersions) throws ARUpdaterException;
 
     private long nativeManager = 0;
     private Runnable downloaderRunnable = null;
@@ -229,14 +229,16 @@ public class ARUpdaterDownloader
         return infos;
     }
     
-    public HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> getBlacklistedVersionSync() throws ARUpdaterException
+    public HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> getBlacklistedVersionSync(boolean alsoCheckRemote) throws ARUpdaterException
     {
         HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> blacklistDict = new HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>>();
         int[] productArray = new int[ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue()];
         
         Object[] blacklistedVersionArray = new Object[ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue()];
         
-        nativeGetBlacklistedFirmwareVersionsSync(nativeManager, productArray, blacklistedVersionArray);
+        int alsoCheckRemoteInt = (alsoCheckRemote) ? 1 : 0;
+        
+        nativeGetBlacklistedFirmwareVersionsSync(nativeManager, alsoCheckRemoteInt, productArray, blacklistedVersionArray);
         for (int i = 0; i < ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue(); i++)
         {
             ARDISCOVERY_PRODUCT_ENUM product = ARDISCOVERY_PRODUCT_ENUM.getFromValue(productArray[i]);
