@@ -58,7 +58,7 @@ public class ARUpdaterDownloader
     private native int nativeCheckUpdatesAsync(long manager);
     private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
     private native ARUpdaterDownloadInfo[] nativeGetUpdatesInfoSync(long manager) throws ARUpdaterException;
-    private native void nativeGetBlacklistedFirmwareVersionsSync(long manager, int alsoCheckRemote, int[] productArray, Object[] blacklistedVersions) throws ARUpdaterException;
+    private native int nativeGetBlacklistedFirmwareVersionsSync(long manager, int alsoCheckRemote, int[] productArray, Object[] blacklistedVersions) throws ARUpdaterException;
 
     private long nativeManager = 0;
     private Runnable downloaderRunnable = null;
@@ -231,24 +231,31 @@ public class ARUpdaterDownloader
     
     public HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> getBlacklistedVersionSync(boolean alsoCheckRemote) throws ARUpdaterException
     {
-        HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> blacklistDict = new HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>>();
+        HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>> blacklistDict = null;
         int[] productArray = new int[ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue()];
         
         Object[] blacklistedVersionArray = new Object[ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue()];
         
         int alsoCheckRemoteInt = (alsoCheckRemote) ? 1 : 0;
         
-        nativeGetBlacklistedFirmwareVersionsSync(nativeManager, alsoCheckRemoteInt, productArray, blacklistedVersionArray);
-        for (int i = 0; i < ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue(); i++)
+        int result = nativeGetBlacklistedFirmwareVersionsSync(nativeManager, alsoCheckRemoteInt, productArray, blacklistedVersionArray);
+        
+        ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
+        
+        if (error == ARUPDATER_ERROR_ENUM.ARUPDATER_OK)
         {
-            ARDISCOVERY_PRODUCT_ENUM product = ARDISCOVERY_PRODUCT_ENUM.getFromValue(productArray[i]);
-            String[] blacklistedVersionsForThisProduct = (String[])blacklistedVersionArray[i];
-            if (blacklistedVersionsForThisProduct != null)
+            blacklistDict = new HashMap<ARDISCOVERY_PRODUCT_ENUM, Set<String>>();
+            for (int i = 0; i < ARDISCOVERY_PRODUCT_ENUM.ARDISCOVERY_PRODUCT_MAX.getValue(); i++)
             {
-                Set<String> blacklistedStringArr = new HashSet<String>();
-                Collections.addAll(blacklistedStringArr, blacklistedVersionsForThisProduct);
-
-                blacklistDict.put(product, blacklistedStringArr);
+                ARDISCOVERY_PRODUCT_ENUM product = ARDISCOVERY_PRODUCT_ENUM.getFromValue(productArray[i]);
+                String[] blacklistedVersionsForThisProduct = (String[])blacklistedVersionArray[i];
+                if (blacklistedVersionsForThisProduct != null)
+                {
+                    Set<String> blacklistedStringArr = new HashSet<String>();
+                    Collections.addAll(blacklistedStringArr, blacklistedVersionsForThisProduct);
+                                        
+                    blacklistDict.put(product, blacklistedStringArr);
+                }
             }
         }
         
