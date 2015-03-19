@@ -577,20 +577,6 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             params = NULL;
         }
 
-        // check if data fetch from request is valid
-        if (error == ARUPDATER_OK)
-        {
-            dataPtr = realloc(dataPtr, dataSize + 1);
-            if (dataPtr != NULL)
-            {
-                (dataPtr)[dataSize] = '\0';
-                if (strlen(dataPtr) != dataSize)
-                {
-                    error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
-                }
-            }
-        }
-
         // check if plf file need to be updated
         if (error == ARUPDATER_OK)
         {
@@ -1154,19 +1140,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             params = NULL;
         }
         
-        // check if data fetch from request is valid
-        if (error == ARUPDATER_OK)
-        {
-            if (dataPtr != NULL)
-            {
-                (dataPtr)[dataSize] = '\0';
-                if (strlen(dataPtr) != dataSize)
-                {
-                    error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
-                }
-            }
-        }
-        
         // use blacklist info from server
         if (error == ARUPDATER_OK)
         {
@@ -1183,8 +1156,9 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                     jsonObj = json_tokener_parse(jsonAsStr);
                 }
                 
-                if (jsonObj == NULL)
+                if ((jsonObj == NULL) || is_error(jsonObj))
                 {
+                    jsonObj = NULL;
                     error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
                     ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "Blacklist json is null");
                 }
@@ -1208,26 +1182,27 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                 snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
                 
                 json_object *productJsonObj = json_object_object_get (jsonObj, device);
-                if (productJsonObj != NULL)
+                if ((productJsonObj != NULL) && !is_error(productJsonObj))
                 {
                     blacklistedRemoteList = json_object_get_array(productJsonObj);
                 }
                 
                 // if it exists blacklisted version for this product
-                if (blacklistedRemoteList != NULL)
+                if ((blacklistedRemoteList != NULL) && !is_error(blacklistedRemoteList))
                 {
                     // add each blacklisted version to the existing list
                     int j = 0;
                     for (j = 0; (error == ARUPDATER_OK) && (j < blacklistedRemoteList->length); j++)
                     {
                         json_object *valueJsonObj = array_list_get_idx (blacklistedRemoteList, j);
-                        if ((valueJsonObj != NULL) && (json_object_is_type(valueJsonObj, json_type_string)))
+                        if ((valueJsonObj != NULL) && !is_error(valueJsonObj) && (json_object_is_type(valueJsonObj, json_type_string)))
                         {
                             const char *blacklistedVersion = json_object_get_string(valueJsonObj);
                             // add it to the existing blacklist
                             // if versions has not enough allocated place
                             if (manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted >= manager->downloader->blacklistedVersions[i]->nbVersionAllocated)
                             {
+                                char** oldVersions = manager->downloader->blacklistedVersions[i]->versions;
                                 char** newVersions = realloc(manager->downloader->blacklistedVersions[i]->versions, ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC * sizeof(char**));
                                 if (newVersions != NULL)
                                 {
@@ -1236,6 +1211,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                                 }
                                 else
                                 {
+                                    manager->downloader->blacklistedVersions[i]->versions = oldVersions;
                                     error = ARUPDATER_ERROR_ALLOC;
                                 }
                             }
@@ -1257,6 +1233,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                 }
             }
         }
+    }
+    
+    if (jsonObj != NULL)
+    {
+        json_object_put(jsonObj);
     }
     
     *blacklistedFirmwares = manager->downloader->blacklistedVersions;
@@ -1390,19 +1371,6 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             endUrl = NULL;
             free(params);
             params = NULL;
-        }
-        
-        // check if data fetch from request is valid
-        if (error == ARUPDATER_OK)
-        {
-            if (dataPtr != NULL)
-            {
-                (dataPtr)[dataSize] = '\0';
-                if (strlen(dataPtr) != dataSize)
-                {
-                    error = ARUPDATER_ERROR_DOWNLOADER_DOWNLOAD;
-                }
-            }
         }
         
         // check if plf file need to be updated
