@@ -65,6 +65,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
 {
     ARUPDATER_Uploader_t *uploader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
+    char *slash = NULL;
     
     // Check parameters
     if ((manager == NULL) || (rootFolder == NULL) || (ftpManager == NULL) || (md5Manager == NULL))
@@ -98,12 +99,20 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     if(err == ARUPDATER_OK)
     {
         int rootFolderLength = strlen(rootFolder) + 1;
-        char *slash = strrchr(rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
+        slash = strrchr(rootFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
         if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
         {
             rootFolderLength += 1;
         }
         uploader->rootFolder = (char*) malloc(rootFolderLength);
+        if (uploader->rootFolder == NULL)
+        {
+            err = ARUPDATER_ERROR_ALLOC;
+        }
+    }
+    
+    if (err == ARUPDATER_OK)
+    {
         strcpy(uploader->rootFolder, rootFolder);
         
         if ((slash != NULL) && (strcmp(slash, ARUPDATER_MANAGER_FOLDER_SEPARATOR) != 0))
@@ -122,7 +131,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         uploader->isDownloadMd5ThreadRunning = 0;
         
         uploader->uploadError = ARDATATRANSFER_OK;
-                
+        
         uploader->progressArg = progressArg;
         uploader->completionArg = completionArg;
         
@@ -185,6 +194,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
             {
                 ARSAL_Mutex_Destroy(&manager->uploader->uploadLock);
                 free(manager->uploader->rootFolder);
+                manager->uploader->rootFolder = NULL;
                 
                 ARDATATRANSFER_Manager_Delete(&manager->uploader->dataTransferManager);
                 
@@ -249,20 +259,35 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
     
     uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
     device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
-    snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+    if (device == NULL)
+    {
+        error = ARUPDATER_ERROR_ALLOC;
+    }
     
-    sourceFileFolder = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
-    strcpy(sourceFileFolder, manager->uploader->rootFolder);
-    strcat(sourceFileFolder, ARUPDATER_MANAGER_PLF_FOLDER);
-    strcat(sourceFileFolder, device);
-    strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
-    
-    fileName = NULL;
-    error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
+    if (error == ARUPDATER_OK)
+    {
+        snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+        
+        sourceFileFolder = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
+        strcpy(sourceFileFolder, manager->uploader->rootFolder);
+        strcat(sourceFileFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+        strcat(sourceFileFolder, device);
+        strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+        
+        error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
+    }
     
     if (error == ARUPDATER_OK)
     {
         sourceFilePath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
+        if (sourceFilePath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
         strcpy(sourceFilePath, sourceFileFolder);
         strcat(sourceFilePath, fileName);
         
@@ -357,48 +382,120 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     char *md5Txt = NULL;
     char *md5RemotePath = NULL;
     char *md5LocalPath = NULL;
+    uint8_t *md5 = NULL;
     
     uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
     device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
-    snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+    if (device == NULL)
+    {
+        error = ARUPDATER_ERROR_ALLOC;
+    }
     
-    sourceFileFolder = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
-    strcpy(sourceFileFolder, manager->uploader->rootFolder);
-    strcat(sourceFileFolder, ARUPDATER_MANAGER_PLF_FOLDER);
-    strcat(sourceFileFolder, device);
-    strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+    if (ARUPDATER_OK == error)
+    {
+        snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+        
+        sourceFileFolder = malloc(strlen(manager->uploader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
+        if (sourceFileFolder == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(sourceFileFolder, manager->uploader->rootFolder);
+            strcat(sourceFileFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+            strcat(sourceFileFolder, device);
+            strcat(sourceFileFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+        }
+    }
     
-    fileName = NULL;
-    error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
+    if (ARUPDATER_OK == error)
+    {
+        error = ARUPDATER_Utils_GetPlfInFolder(sourceFileFolder, &fileName);
+    }
     
-    if (error == ARUPDATER_OK)
+    if (ARUPDATER_OK == error)
     {
         tmpDestFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + strlen(ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX) + 1);
-        strcpy(tmpDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-        strcat(tmpDestFilePath, fileName);
-        strcat(tmpDestFilePath, ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX);
-        
+        if (tmpDestFilePath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(tmpDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+            strcat(tmpDestFilePath, fileName);
+            strcat(tmpDestFilePath, ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX);
+        }
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
         finalDestFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + 1);
-        strcpy(finalDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-        strcat(finalDestFilePath, fileName);
-        
+        if (finalDestFilePath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(finalDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+            strcat(finalDestFilePath, fileName);
+        }
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
         sourceFilePath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
-        strcpy(sourceFilePath, sourceFileFolder);
-        strcat(sourceFilePath, fileName);
-        
+        if (sourceFilePath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(sourceFilePath, sourceFileFolder);
+            strcat(sourceFilePath, fileName);
+        }
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
         md5LocalPath = malloc(strlen(sourceFileFolder) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
-        strcpy(md5LocalPath, sourceFileFolder);
-        strcat(md5LocalPath, ARUPDATER_UPLOADER_MD5_FILENAME);
-        
+        if (md5LocalPath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(md5LocalPath, sourceFileFolder);
+            strcat(md5LocalPath, ARUPDATER_UPLOADER_MD5_FILENAME);
+        }
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
         md5RemotePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
-        strcpy(md5RemotePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-        strcat(md5RemotePath, ARUPDATER_UPLOADER_MD5_FILENAME);
+        if (md5RemotePath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(md5RemotePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
+            strcat(md5RemotePath, ARUPDATER_UPLOADER_MD5_FILENAME);
+        }
     }
     
     // get md5 of the plf file to upload
     if (error == ARUPDATER_OK)
     {
-        uint8_t *md5 = malloc(ARSAL_MD5_LENGTH);
+        md5 = malloc(ARSAL_MD5_LENGTH);
+        if (md5 == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+    }
+    if (error == ARUPDATER_OK)
+    {
         eARSAL_ERROR arsalError = ARSAL_MD5_Manager_Compute(manager->uploader->md5Manager, sourceFilePath, md5, ARSAL_MD5_LENGTH);
         if (ARSAL_OK == arsalError)
         {
@@ -414,7 +511,12 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
         {
             error = ARUPDATER_ERROR_UPLOADER_ARSAL_ERROR;
         }
+    }
+    
+    if (md5 != NULL)
+    {
         free(md5);
+        md5 = NULL;
     }
     
     // by default, do not resume an upload
@@ -461,22 +563,41 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
             char line[ARUPDATER_UPLOADER_CHUNK_SIZE];
             int allocatedSize = 1;
             char *uploadedMD5 = malloc(allocatedSize);
-            strcpy(uploadedMD5, "");
-            while ((size = fread(line, 1, ARUPDATER_UPLOADER_CHUNK_SIZE, md5File)) != 0)
+            if (uploadedMD5 != NULL)
             {
-                allocatedSize += size;
-                uploadedMD5 = realloc(uploadedMD5, allocatedSize + 1);
-                strncat(uploadedMD5, line, size);
-                uploadedMD5[allocatedSize] = '\0';
+                strcpy(uploadedMD5, "");
+            }
+            else
+            {
+                error = ARUPDATER_ERROR_ALLOC;
+            }
+            
+            while ((ARUPDATER_OK == error) && (size = fread(line, 1, ARUPDATER_UPLOADER_CHUNK_SIZE, md5File)) != 0)
+            {
+                char *uploadedMD5Reallocated = realloc(uploadedMD5, allocatedSize + size + 1);
+                if (uploadedMD5Reallocated != NULL)
+                {
+                    allocatedSize += size;
+                    uploadedMD5 = uploadedMD5Reallocated;
+                    strncat(uploadedMD5, line, size);
+                    uploadedMD5[allocatedSize] = '\0';
+                }
+                else
+                {
+                    error = ARUPDATER_ERROR_ALLOC;
+                }
             }
             fclose(md5File);
             md5File = NULL;
             
-            // md5s match, so we can resume the upload
-            if (strcmp(md5Txt, uploadedMD5) == 0)
+            if (ARUPDATER_OK == error)
             {
-                resumeMode = ARDATATRANSFER_UPLOADER_RESUME_TRUE;
-            } // ELSE md5s don't match, so keep the default value of resumeMode (=> begin a new upload)
+                // md5s match, so we can resume the upload
+                if (strcmp(md5Txt, uploadedMD5) == 0)
+                {
+                    resumeMode = ARDATATRANSFER_UPLOADER_RESUME_TRUE;
+                } // ELSE md5s don't match, so keep the default value of resumeMode (=> begin a new upload)
+            }
             
             free(uploadedMD5);
             uploadedMD5 = NULL;
@@ -490,7 +611,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     if ((ARUPDATER_OK == error) && (resumeMode == ARDATATRANSFER_UPLOADER_RESUME_FALSE))
     {
         FILE *md5File = fopen(md5LocalPath, "wb");
-        if (md5File != NULL && md5Txt != NULL)
+        if ((md5File != NULL) && (md5Txt != NULL))
         {
             fprintf(md5File, "%s", md5Txt);
             fclose(md5File);
