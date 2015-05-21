@@ -1,0 +1,4 @@
+
+ftp://download.parrot.com/
+ftp://download.parrot.com/Drones/
+ftp://download.parrot.com/Drones/0900/
