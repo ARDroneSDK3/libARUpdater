@@ -223,7 +223,7 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     
     if ((manager != NULL) && (manager->uploader != NULL))
     {
-        if ((manager->uploader->product == ARDISCOVERY_PRODUCT_MINIDRONE) && (manager->uploader->isAndroidApp == 1))
+        if ((ARDISCOVERY_getProductService(manager->uploader->product) == ARDISCOVERY_PRODUCT_BLESERVICE) && (manager->uploader->isAndroidApp == 1))
         {
             error = ARUPDATER_Uploader_ThreadRunAndroidDelos(manager);
         }
