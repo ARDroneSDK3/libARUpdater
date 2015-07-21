@@ -1044,9 +1044,7 @@ char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platf
 
 eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDATER_Manager_t* manager, int alsoCheckRemote, ARUPDATER_Manager_BlacklistedFirmware_t ***blacklistedFirmwares)
 {
-    eARUPDATER_ERROR error = ARUPDATER_OK;
-    int nbProducts = 0;
-    
+    eARUPDATER_ERROR error = ARUPDATER_OK;    
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
     uint32_t dataSize;
@@ -1105,7 +1103,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
         // request the php
         if (error == ARUPDATER_OK)
         {
-            char buffer[ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT];
             // create the url params
             char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
             

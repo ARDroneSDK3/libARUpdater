@@ -372,17 +372,20 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     }
     
     eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
-
+    eARDATATRANSFER_ERROR dataTransferMd5Error = ARDATATRANSFER_OK;
     char *sourceFileFolder = NULL;
     char *sourceFilePath = NULL;
     char *tmpDestFilePath = NULL;
     char *finalDestFilePath = NULL;
+    char *plfDestLocalPath = NULL;
     char *device = NULL;
     char *fileName = NULL;
     char *md5Txt = NULL;
     char *md5RemotePath = NULL;
     char *md5LocalPath = NULL;
     uint8_t *md5 = NULL;
+    double pflFileSize = 0.f;
+    int existingFinalFile = 0;
     
     uint16_t productId = ARDISCOVERY_getProductID(manager->uploader->product);
     device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
@@ -454,6 +457,20 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
         {
             strcpy(sourceFilePath, sourceFileFolder);
             strcat(sourceFilePath, fileName);
+        }
+    }
+    
+    if (ARUPDATER_OK == error)
+    {
+        plfDestLocalPath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
+        if (sourceFilePath == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
+        }
+        else
+        {
+            strcpy(plfDestLocalPath, sourceFileFolder);
+            strcat(plfDestLocalPath, fileName);
         }
     }
     
@@ -539,6 +556,10 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
         manager->uploader->isDownloadMd5ThreadRunning = 1;
         ARDATATRANSFER_Downloader_ThreadRun(manager->uploader->dataTransferManager);
         manager->uploader->isDownloadMd5ThreadRunning = 0;
+        if (manager->uploader->uploadError != ARDATATRANSFER_OK)
+        {
+            dataTransferMd5Error = manager->uploader->uploadError;
+        }
     }
     
     ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
@@ -553,7 +574,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
     
     // check if an upload was in progress
-    if (ARUPDATER_OK == error)
+    if (ARUPDATER_OK == error && ARDATATRANSFER_OK == dataTransferMd5Error)
     {
         // an upload should be resumed if and only if the md5 file is present and the md5 in file match with the plf file md5
         FILE *md5File = fopen(md5LocalPath, "rb");
@@ -605,6 +626,41 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
             // delete the md5LocalPath file
             unlink(md5LocalPath);
         }
+    }
+    
+    //check existing plf
+    if ((ARUPDATER_OK == error) && (resumeMode == ARDATATRANSFER_UPLOADER_RESUME_TRUE))
+    {
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (ARUPDATER_OK == error)
+        {
+            dataTransferError = ARDATATRANSFER_Downloader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, finalDestFilePath, plfDestLocalPath, NULL, NULL, ARUPDATER_Uploader_CompletionCallback, manager, ARDATATRANSFER_DOWNLOADER_RESUME_FALSE);
+            if (ARDATATRANSFER_OK != dataTransferError)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+        
+        if (ARUPDATER_OK == error)
+        {
+            dataTransferError = ARDATATRANSFER_Downloader_GetSize(manager->uploader->dataTransferManager, &pflFileSize);
+            if (ARDATATRANSFER_OK == dataTransferError && pflFileSize > 0.f)
+            {
+                existingFinalFile = 1;
+            }
+        }
+        
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (ARUPDATER_OK == error)
+        {
+            dataTransferError = ARDATATRANSFER_Downloader_Delete(manager->uploader->dataTransferManager);
+            if (ARDATATRANSFER_OK != dataTransferError)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
     }
     
     // store in md5LocalPath the md5 of the file that will be uploaded if the upload is a new one
@@ -668,47 +724,50 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
         md5Txt = NULL;
     }
     
-    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
-    // create a new uploader
-    if (ARUPDATER_OK == error)
+    //existing tmp plf with right md5
+    if ((ARUPDATER_OK == error) && (existingFinalFile == 0))
     {
-        dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, tmpDestFilePath, sourceFilePath, ARUPDATER_Uploader_ProgressCallback, manager, ARUPDATER_Uploader_CompletionCallback, manager, resumeMode);
-        if (ARDATATRANSFER_OK != dataTransferError)
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        // create a new uploader
+        if (ARUPDATER_OK == error)
         {
-            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            dataTransferError = ARDATATRANSFER_Uploader_New(manager->uploader->dataTransferManager, manager->uploader->ftpManager, tmpDestFilePath, sourceFilePath, ARUPDATER_Uploader_ProgressCallback, manager, ARUPDATER_Uploader_CompletionCallback, manager, resumeMode);
+            if (ARDATATRANSFER_OK != dataTransferError)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
         }
-    }
-    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
-    
-    
-    if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
-    {
-        manager->uploader->isUploadThreadRunning = 1;
-        ARDATATRANSFER_Uploader_ThreadRun(manager->uploader->dataTransferManager);
-        manager->uploader->isUploadThreadRunning = 0;
-        if (manager->uploader->uploadError != ARDATATRANSFER_OK)
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
+        
+        
+        if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
         {
-            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            manager->uploader->isUploadThreadRunning = 1;
+            ARDATATRANSFER_Uploader_ThreadRun(manager->uploader->dataTransferManager);
+            manager->uploader->isUploadThreadRunning = 0;
+            if (manager->uploader->uploadError != ARDATATRANSFER_OK)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
         }
-    }
-    
-    // rename the plf file if the operation went well
-    if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
-    {
-        ARDATATRANSFER_Uploader_Rename(manager->uploader->dataTransferManager, tmpDestFilePath, finalDestFilePath);
-    }
-    
-    
-    ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
-    if (ARUPDATER_OK == error)
-    {
-        dataTransferError = ARDATATRANSFER_Uploader_Delete(manager->uploader->dataTransferManager);
-        if (ARDATATRANSFER_OK != dataTransferError)
+        
+        // rename the plf file if the operation went well
+        if ((ARUPDATER_OK == error) && (manager->uploader->isCanceled == 0))
         {
-            error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            ARDATATRANSFER_Uploader_Rename(manager->uploader->dataTransferManager, tmpDestFilePath, finalDestFilePath);
         }
+        
+        ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
+        if (ARUPDATER_OK == error)
+        {
+            dataTransferError = ARDATATRANSFER_Uploader_Delete(manager->uploader->dataTransferManager);
+            if (ARDATATRANSFER_OK != dataTransferError)
+            {
+                error = ARUPDATER_ERROR_UPLOADER_ARDATATRANSFER_ERROR;
+            }
+        }
+        ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
     }
-    ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
     
     if (error != ARUPDATER_OK)
     {
@@ -746,6 +805,10 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     if (finalDestFilePath != NULL)
     {
         free(finalDestFilePath);
+    }
+    if (plfDestLocalPath != NULL)
+    {
+        free(plfDestLocalPath);
     }
     
     if ((manager != NULL) && (manager->uploader != NULL))
