@@ -24,7 +24,7 @@ SOURCE_FILES                                                =   $(HEADER_FILES)\
                                                                 ../Sources/ARUPDATER_Utils.h                    \
                                                                 ../Sources/ARUPDATER_DownloadInformation.c      \
                                                                 ../Sources/ARUPDATER_DownloadInformation.h      \
-                                                                ../Sources/ARUPDATER_Error.c
+                                                                ../gen/Sources/ARUPDATER_Error.c
                                 
 if HAVE_OBJECTIVE_C
 
