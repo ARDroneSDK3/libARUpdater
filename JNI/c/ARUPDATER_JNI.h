@@ -295,5 +295,35 @@ int ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env);
  */
 void ARUPDATER_JNI_Manager_FreeDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env);
 
+
+/*************************************************
+    ARDISCOVERY enum generator
+**************************************************/
+
+/**
+ * @brief Create a new ARDISCOVERY_PRODUCT_ENUM
+ * @param env The java env
+ * @param product The product
+ * @retval the new ARDISCOVERY_PRODUCT_ENUM
+ * @see ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI
+ */
+jobject ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM(JNIEnv *env, eARDISCOVERY_PRODUCT product);
+
+/**
+ * @brief Get the ARDISCOVERY_PRODUCT_ENUM JNI class
+ * @param env The java env
+ * @retval JNI_TRUE if Success, else JNI_FALSE
+ * @see ARUPDATER_JNI_Manager_FreeDISCOVERY_PRODUCT_ENUM_JNI
+ */
+int ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env);
+
+/**
+ * @brief Free the ARDISCOVERY_PRODUCT_ENUM JNI class
+ * @param env The java env
+ * @retval void
+ * @see ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI
+ */
+void ARUPDATER_JNI_Manager_FreeDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env);
+
 #endif /* _ARUPDATER_JNI_H_ */
 

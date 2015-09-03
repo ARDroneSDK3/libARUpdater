@@ -244,7 +244,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 
     if (result == ARUPDATER_OK)
     {
-        result = ARUPDATER_Downloader_SetUpdatesProductList(nativeManager, productIntArray, productArrayCount);
+        result = ARUPDATER_Downloader_SetUpdatesProductList(nativeManager, (eARDISCOVERY_PRODUCT *)productIntArray, productArrayCount);
     }
 
     if ((jProductArray != NULL) && (productIntArray != NULL))
@@ -349,7 +349,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
                     }
                 }
                 (*env)->SetObjectArrayElement(env, jBlacklistedVersionArray, i, blacklistedVersionsForThisProduct);
-                (*env)->SetIntArrayRegion(env, jProductArray, i, 1, &product);
+                (*env)->SetIntArrayRegion(env, jProductArray, i, 1, (jint *)&product);
             }
         }
     }
@@ -988,7 +988,6 @@ jobject ARUPDATER_JNI_Downloader_NewDownloadInfo(JNIEnv *env, ARUPDATER_Download
     jobject jInfo = NULL;
     jstring jDownloadUrl = NULL;
     jstring jPlfVersion = NULL;
-    jint jProduct = NULL;
     int error = JNI_OK;
 
     ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", (info->plfVersion != NULL) ? info->plfVersion : "null");

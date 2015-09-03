@@ -645,4 +645,3 @@ jobject ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM(JNIEnv *env, eARDISCOVER
 
     return jPRODUCT_ENUM;
 }
-
