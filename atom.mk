@@ -2,50 +2,38 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_CATEGORY_PATH := dragon/libs
 LOCAL_MODULE := libARUpdater
 LOCAL_DESCRIPTION := ARSDK Updater
+LOCAL_CATEGORY_PATH := dragon/libs
 
-LOCAL_LIBRARIES := ARSDKBuildUtils libARSAL libARDiscovery libARCommands libARUtils libARDataTransfer
+LOCAL_MODULE_FILENAME := libarupdater.so
 
-# Copy in build dir so bootstrap files are generated in build dir
-LOCAL_AUTOTOOLS_COPY_TO_BUILD_DIR := 1
+LOCAL_LIBRARIES := \
+	libARSAL \
+	libARDiscovery \
+	libARCommands \
+	libARUtils \
+	libARDataTransfer \
+	json
 
-# Configure script is not at the root
-LOCAL_AUTOTOOLS_CONFIGURE_SCRIPT := Build/configure
+LOCAL_C_INCLUDES := \
+	$(LOCAL_PATH)/Includes \
+	$(LOCAL_PATH)/Sources
 
-# Autotools variable
-LOCAL_AUTOTOOLS_CONFIGURE_ARGS := \
-	--with-libARUtilsInstallDir="" \
-	--with-libARSALInstallDir="" \
-	--with-libARDataTransferInstallDir="" \
-	--with-libARDiscoveryInstallDir="" \
-	--with-libCurlInstallDir="" \
-	--with-jsonInstallDir=""
+LOCAL_SRC_FILES := \
+	Sources/ARUPDATER_Downloader.c \
+	Sources/ARUPDATER_DownloadInformation.c \
+	Sources/ARUPDATER_Manager.c \
+	Sources/ARUPDATER_Plf.c \
+	Sources/ARUPDATER_Uploader.c \
+	Sources/ARUPDATER_Utils.c \
+	gen/Sources/ARUPDATER_Error.c
 
-ifeq ("$(TARGET_OS_FLAVOUR)","android")
+LOCAL_INSTALL_HEADERS := \
+	Includes/libARUpdater/ARUpdater.h:usr/include/libARUpdater/ \
+	Includes/libARUpdater/ARUPDATER_Downloader.h:usr/include/libARUpdater/ \
+	Includes/libARUpdater/ARUPDATER_Error.h:usr/include/libARUpdater/ \
+	Includes/libARUpdater/ARUPDATER_Manager.h:usr/include/libARUpdater/ \
+	Includes/libARUpdater/ARUPDATER_Uploader.h:usr/include/libARUpdater/
 
-LOCAL_AUTOTOOLS_CONFIGURE_ARGS += \
-	--disable-static \
-	--enable-shared \
-	--disable-so-version
-
-else ifneq ($(filter iphoneos iphonesimulator, $(TARGET_OS_FLAVOUR)),)
-
-LOCAL_AUTOTOOLS_CONFIGURE_ARGS += \
-	--enable-static \
-	--disable-shared \
-	OBJCFLAGS=" -x objective-c -fobjc-arc -std=gnu99 $(TARGET_GLOBAL_CFLAGS)" \
-	OBJC="$(TARGET_CC)" \
-	CFLAGS=" -std=gnu99 -x c $(TARGET_GLOBAL_CFLAGS)"
-
-endif
-
-define LOCAL_AUTOTOOLS_CMD_POST_UNPACK
-	$(Q) cd $(PRIVATE_SRC_DIR)/Build && ./bootstrap
-endef
-
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/Includes
-LOCAL_EXPORT_LDLIBS := -larupdater
-
-include $(BUILD_AUTOTOOLS)
+include $(BUILD_LIBRARY)
