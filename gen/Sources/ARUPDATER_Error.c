@@ -40,7 +40,7 @@
 
 #include <libARUpdater/ARUPDATER_Error.h>
 
-char* ARUPDATER_Error_ToString (eARUPDATER_ERROR error)
+const char* ARUPDATER_Error_ToString (eARUPDATER_ERROR error)
 {
     switch (error)
     {

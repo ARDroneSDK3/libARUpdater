@@ -83,6 +83,6 @@ typedef enum
  *
  * @note User should NEVER try to modify a returned string
  */
-char* ARUPDATER_Error_ToString (eARUPDATER_ERROR error);
+const char* ARUPDATER_Error_ToString (eARUPDATER_ERROR error);
 
 #endif /* _LIBARUPDATER_ERROR_H_ */
