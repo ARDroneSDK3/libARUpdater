@@ -765,8 +765,8 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     manager->downloader->willDownloadPlfCallback(manager->downloader->completionArg, product, remoteVersion);
                 }
 
-                char *downloadEndUrl;
-                char *downloadServer;
+                char *downloadEndUrl = NULL;
+                char *downloadServer = NULL;
                 char *downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
                 if(downloadedFileName != NULL && strlen(downloadedFileName) > 0)
                 {
