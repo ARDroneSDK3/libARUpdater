@@ -82,7 +82,7 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
     
     if ((plfFolder == NULL) || (plfFileName == NULL))
     {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
+        return ARUPDATER_ERROR_BAD_PARAMETER;
     }
 
     *plfFileName = NULL;
