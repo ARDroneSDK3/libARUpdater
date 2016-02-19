@@ -75,26 +75,22 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     
     if(err == ARUPDATER_OK)
     {
-        /* Create the uploader */
-        uploader = malloc (sizeof (ARUPDATER_Uploader_t));
-        if (uploader == NULL)
-        {
-            err = ARUPDATER_ERROR_ALLOC;
-        }
-    }
-    
-    if (err == ARUPDATER_OK)
-    {
         if (manager->uploader != NULL)
         {
             err = ARUPDATER_ERROR_MANAGER_ALREADY_INITIALIZED;
         }
         else
         {
-            manager->uploader = uploader;
+            uploader = malloc (sizeof (ARUPDATER_Uploader_t));
+            if (uploader == NULL)
+            {
+                err = ARUPDATER_ERROR_ALLOC;
+            } else {
+                manager->uploader = uploader;
+            }
         }
     }
-    
+
     /* Initialize to default values */
     if(err == ARUPDATER_OK)
     {
