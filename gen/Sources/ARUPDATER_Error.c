@@ -120,7 +120,6 @@ const char* ARUPDATER_Error_ToString (eARUPDATER_ERROR error)
         return "error on a ARSAL operation in uploader";
         break;
     default:
-        return "Unknown value";
         break;
     }
     return "Unknown value";
