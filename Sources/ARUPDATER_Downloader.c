@@ -340,8 +340,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_SetUpdatesProductList(ARUPDATER_Manager_t 
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-
-    if (manager->downloader == NULL)
+    else if (manager->downloader == NULL)
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
@@ -393,21 +392,6 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     int nbUpdatesToDownload = 0;
-    if (manager == NULL)
-    {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
-    }
-
-    if (manager->downloader == NULL)
-    {
-        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
-    }
-
-    if (ARUPDATER_OK == error)
-    {
-        manager->downloader->updateHasBeenChecked = 1;
-    }
-
     int version;
     int edit;
     int ext;
@@ -420,6 +404,20 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     char *data;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
+
+    if (manager == NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    else if (manager->downloader == NULL)
+    {
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+    }
+
+    if (ARUPDATER_OK == error)
+    {
+        manager->downloader->updateHasBeenChecked = 1;
+    }
 
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
@@ -943,7 +941,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         manager->downloader->isRunning = 0;
     }
 
-    if (manager->downloader->plfDownloadCompletionCallback != NULL)
+    if (manager && manager->downloader && manager->downloader->plfDownloadCompletionCallback)
     {
         manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
     }
@@ -1038,6 +1036,7 @@ char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platf
             break;
         case ARUPDATER_DOWNLOADER_IOS_PLATFORM :
             toReturn = ARUPDATER_DOWNLOADER_IOS_PLATFORM_NAME;
+            break;
         default:
             break;
     }
@@ -1241,6 +1240,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
     
     if (manager && manager->downloader && blacklistedFirmwares)
         *blacklistedFirmwares = manager->downloader->blacklistedVersions;
+
     return error;
 }
 
@@ -1252,8 +1252,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
-    if (manager->downloader == NULL)
+    else if (manager->downloader == NULL)
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
@@ -1421,6 +1420,9 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     {
         *err = error;
     }
-    *informations = manager->downloader->downloadInfos;
+
+    if (manager && manager->downloader && informations)
+        *informations = manager->downloader->downloadInfos;
+
     return  productIndex;
 }
