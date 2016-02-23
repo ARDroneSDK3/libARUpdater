@@ -1062,8 +1062,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
-    if (manager->downloader == NULL)
+    else if (manager->downloader == NULL)
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
