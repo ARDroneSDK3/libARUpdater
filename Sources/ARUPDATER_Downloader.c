@@ -1201,7 +1201,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                             if (manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted >= manager->downloader->blacklistedVersions[i]->nbVersionAllocated)
                             {
                                 char** oldVersions = manager->downloader->blacklistedVersions[i]->versions;
-                                char** newVersions = realloc(manager->downloader->blacklistedVersions[i]->versions, ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC * sizeof(char**));
+                                char** newVersions = realloc(manager->downloader->blacklistedVersions[i]->versions, ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC * sizeof(char*));
                                 if (newVersions != NULL)
                                 {
                                     manager->downloader->blacklistedVersions[i]->versions = newVersions;
