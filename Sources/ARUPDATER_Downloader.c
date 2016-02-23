@@ -1240,7 +1240,8 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
         json_object_put(jsonObj);
     }
     
-    *blacklistedFirmwares = manager->downloader->blacklistedVersions;
+    if (manager && manager->downloader && blacklistedFirmwares)
+        *blacklistedFirmwares = manager->downloader->blacklistedVersions;
     return error;
 }
 
