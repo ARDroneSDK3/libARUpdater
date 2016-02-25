@@ -766,6 +766,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 
                 char *downloadEndUrl = NULL;
                 char *downloadServer = NULL;
+                char *downloadedFinalFilePath = NULL;
                 char *downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
                 if(downloadedFileName != NULL && strlen(downloadedFileName) > 0)
                 {
@@ -773,19 +774,23 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 }
 
                 char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(downloadedFileName) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX) + 1);
-                strcpy(downloadedFilePath, deviceFolder);
-                strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
-                strcat(downloadedFilePath, downloadedFileName);
-                strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
+                if (!downloadedFilePath) {
+                    error = ARUPDATER_ERROR_ALLOC;
+                } else {
+                    strcpy(downloadedFilePath, deviceFolder);
+                    strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
+                    strcat(downloadedFilePath, downloadedFileName);
+                    strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
 
-                char *downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
-                strcpy(downloadedFinalFilePath, deviceFolder);
-                strcat(downloadedFinalFilePath, downloadedFileName);
+                    downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
+                    strcpy(downloadedFinalFilePath, deviceFolder);
+                    strcat(downloadedFinalFilePath, downloadedFileName);
 
-                // explode the download url into server and endUrl
-                if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
-                {
-                    error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+                    // explode the download url into server and endUrl
+                    if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
+                    {
+                        error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+                    }
                 }
 
                 // construct the url
