@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <libARSAL/ARSAL_Print.h>
 #include <libARSAL/ARSAL_Error.h>
@@ -404,6 +405,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     char *data;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
+    int ret;
 
     if (manager == NULL)
     {
@@ -479,7 +481,9 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             FILE *dir = fopen(plfFolder, "r");
             if (dir == NULL)
             {
-                mkdir(plfFolder, S_IRWXU);
+                ret = mkdir(plfFolder, S_IRWXU);
+                if (ret < 0 && errno != EEXIST)
+                    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "mkdir '%s' error: %s", strerror(errno));
             }
             else
             {
@@ -696,7 +700,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        return ARUPDATER_ERROR_BAD_PARAMETER;
+        return NULL;
     }
 
     if ((manager != NULL) && (manager->downloader != NULL))
@@ -705,7 +709,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        return ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+        return NULL;
     }
 
     int shouldDownload = 0;
