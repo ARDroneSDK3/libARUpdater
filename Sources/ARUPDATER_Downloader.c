@@ -734,8 +734,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         ARSAL_Sem_t dlSem;
 
         char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
-        strcpy(plfFolder, manager->downloader->rootFolder);
-        strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+        if (!plfFolder) {
+            error = ARUPDATER_ERROR_ALLOC;
+        } else {
+            strcpy(plfFolder, manager->downloader->rootFolder);
+            strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+        }
 
         int productIndex = 0;
         while ((error == ARUPDATER_OK) && (productIndex < manager->downloader->productCount) && (manager->downloader->isCanceled == 0))
