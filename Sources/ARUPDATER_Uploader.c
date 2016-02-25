@@ -241,10 +241,12 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    if ((manager != NULL) && (manager->uploader != NULL))
+    if (manager && manager->uploader)
     {
         manager->uploader->isRunning = 1;
-    } else {
+    }
+    else
+    {
         return ARUPDATER_ERROR_BAD_PARAMETER;
     }
 
@@ -347,11 +349,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
         free(fileName);
     }
 
-    if ((manager != NULL) && (manager->uploader != NULL))
-    {
-        manager->uploader->isRunning = 0;
-    }
-    
+    manager->uploader->isRunning = 0;
+
     if (manager->uploader->completionCallback != NULL)
     {
         manager->uploader->completionCallback(manager->uploader->completionArg, error);
