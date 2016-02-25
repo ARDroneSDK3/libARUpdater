@@ -797,8 +797,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     downloadEndUrl = strchr(urlWithoutHttpHeader, delimiter);
                     int serverLength = strlen(urlWithoutHttpHeader) - strlen(downloadEndUrl);
                     downloadServer = malloc(serverLength + 1);
-                    strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
-                    downloadServer[serverLength] = '\0';
+                    if (!downloadServer) {
+                        error = ARUPDATER_ERROR_ALLOC;
+                    } else {
+                        strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
+                        downloadServer[serverLength] = '\0';
+                    }
                 }
 
                 ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
