@@ -745,6 +745,10 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             uint16_t productId = ARDISCOVERY_getProductID(product);
 
             device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
+            if (!device) {
+                error = ARUPDATER_ERROR_ALLOC;
+                break;
+            }
             snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
 
             deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
