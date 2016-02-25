@@ -458,10 +458,14 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         {
             // file path = deviceFolder + plfFilename + \0
             existingPlfFilePath = malloc(strlen(deviceFolder) + strlen(fileName) + 1);
-            strcpy(existingPlfFilePath, deviceFolder);
-            strcat(existingPlfFilePath, fileName);
+            if (!existingPlfFilePath) {
+                error = ARUPDATER_ERROR_ALLOC;
+            } else {
+                strcpy(existingPlfFilePath, deviceFolder);
+                strcat(existingPlfFilePath, fileName);
 
-            error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
+                error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
+            }
         }
         // else if the file does not exist, force to download
         else if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
