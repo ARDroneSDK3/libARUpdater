@@ -977,7 +977,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    int resultSys = 0;
 
     if (manager == NULL)
     {
@@ -1014,10 +1013,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
         }
         ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
-        if (resultSys != 0)
-        {
-            error = ARUPDATER_ERROR_SYSTEM;
-        }
     }
 
     return error;
