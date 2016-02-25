@@ -692,7 +692,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
+        return ARUPDATER_ERROR_BAD_PARAMETER;
     }
 
     if ((manager != NULL) && (manager->downloader != NULL))
@@ -701,7 +701,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+        return ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
 
     int shouldDownload = 0;
