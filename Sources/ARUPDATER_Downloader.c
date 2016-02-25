@@ -791,8 +791,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
 
                     downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
-                    strcpy(downloadedFinalFilePath, deviceFolder);
-                    strcat(downloadedFinalFilePath, downloadedFileName);
+                    if (!downloadedFinalFilePath) {
+                        error = ARUPDATER_ERROR_ALLOC;
+                    } else {
+                        strcpy(downloadedFinalFilePath, deviceFolder);
+                        strcat(downloadedFinalFilePath, downloadedFileName);
+                    }
 
                     // explode the download url into server and endUrl
                     if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
