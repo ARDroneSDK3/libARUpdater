@@ -1087,11 +1087,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
     
     if (manager == NULL)
     {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
+        return ARUPDATER_ERROR_BAD_PARAMETER;
     }
     else if (manager->downloader == NULL)
     {
-        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+        return ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
     
     if (alsoCheckRemote != 0)
