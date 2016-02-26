@@ -764,12 +764,16 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
 
             deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
-            strcpy(deviceFolder, plfFolder);
-            strcat(deviceFolder, device);
-            strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+            if (!deviceFolder) {
+                error = ARUPDATER_ERROR_ALLOC;
+            } else {
+                strcpy(deviceFolder, plfFolder);
+                strcat(deviceFolder, device);
+                strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+            }
 
             ARUPDATER_DownloadInformation_t *downloadInfo = manager->downloader->downloadInfos[product];
-            if (downloadInfo != NULL)
+            if (error == ARUPDATER_OK && downloadInfo != NULL)
             {
                 const char *const downloadUrl = downloadInfo->downloadUrl;
                 char *remoteMD5 = downloadInfo->md5Expected;
