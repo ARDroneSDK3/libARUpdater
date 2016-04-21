@@ -538,6 +538,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     
     // by default, do not resume an upload
     eARDATATRANSFER_UPLOADER_RESUME resumeMode = ARDATATRANSFER_UPLOADER_RESUME_FALSE;
+    // delete the potential md5LocalPath file
+    unlink(md5LocalPath);
     
     // read distant plf md5
     ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
@@ -712,10 +714,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
         }
         ARSAL_Mutex_Unlock(&manager->uploader->uploadLock);
         
-        if (ARUPDATER_OK == error)
-        {
-            unlink(md5LocalPath);
-        }
+        //we need remove this file in all case
+        unlink(md5LocalPath);
     }
     
     if (md5Txt != NULL)
