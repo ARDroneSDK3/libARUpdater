@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
             
             if(ftpError == ARUTILS_OK)
             {
-                error = ARUPDATER_Uploader_New(manager, "./test", ftpManager, md5Manager, ARDISCOVERY_PRODUCT_MINIDRONE, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
+                error = ARUPDATER_Uploader_New(manager, "./test", NULL, ftpManager, md5Manager, ARDISCOVERY_PRODUCT_MINIDRONE, test_http_progress_callback, "prog : ", test_ftp_upload_callback, NULL);
             }
             else
             {

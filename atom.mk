@@ -16,6 +16,10 @@ LOCAL_LIBRARIES := \
 	libARDataTransfer \
 	json
 
+LOCAL_CONDITIONAL_LIBRARIES := \
+	OPTIONAL:libmux \
+	OPTIONAL:libpomp
+
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/Includes \
 	$(LOCAL_PATH)/Sources

@@ -43,13 +43,26 @@
 #include <libARDataTransfer/ARDATATRANSFER_Downloader.h>
 #include <libARSAL/ARSAL_Mutex.h>
 
+/* forward declaration */
+struct mux_ctx;
+
 struct ARUPDATER_Uploader_t
 {
     char *rootFolder;
     eARDISCOVERY_PRODUCT product;
     int isAndroidApp;
+
+    /* transport layer: ftp or mux */
     ARUTILS_Manager_t *ftpManager;
-    
+    struct mux_ctx *mux;
+    /* mux vars */
+    int fd;
+    size_t size;
+    size_t n_written;
+    void *chunk;
+    size_t chunk_id;
+    int pipefds[2];
+
     int isRunning;
     int isCanceled;
     int isUploadThreadRunning;
@@ -67,7 +80,6 @@ struct ARUPDATER_Uploader_t
     void *completionArg;
     
     eARDATATRANSFER_ERROR uploadError;
-    
 };
 
 void ARUPDATER_Uploader_ProgressCallback(void* arg, float percent);
@@ -75,5 +87,6 @@ void ARUPDATER_Uploader_CompletionCallback(void* arg, eARDATATRANSFER_ERROR erro
 
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *manager);
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager);
+eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager);
 
 #endif
