@@ -46,9 +46,11 @@
 #include <signal.h>
 #include <poll.h>
 
+#if defined BUILD_LIBMUX
 #include <libpomp.h>
 #include <libmux.h>
 #include <libmux-update.h>
+#endif
 
 #include <libARSAL/ARSAL_Print.h>
 #include <libARUtils/ARUtils.h>
@@ -88,6 +90,11 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     {
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
+
+#if !defined BUILD_LIBMUX
+    if (mux != NULL)
+        err = ARUPDATER_ERROR_BAD_PARAMETER;
+#endif
     
     if(err == ARUPDATER_OK)
     {
@@ -136,8 +143,10 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         uploader->isAndroidApp = isAndroidApp;
         uploader->ftpManager = ftpManager;
         uploader->mux = mux;
+#if defined BUILD_LIBMUX
         if (uploader->mux)
             mux_ref(uploader->mux);
+#endif
 
         uploader->md5Manager = md5Manager;
         
@@ -233,10 +242,12 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
                 ARDATATRANSFER_Manager_Delete(&manager->uploader->dataTransferManager);
                 close(manager->uploader->pipefds[0]);
                 close(manager->uploader->pipefds[1]);
+#if defined BUILD_LIBMUX
                 if (manager->uploader->mux) {
                     mux_unref(manager->uploader->mux);
                     manager->uploader->mux = NULL;
                 }
+#endif
                 free(manager->uploader);
                 manager->uploader = NULL;
             }
@@ -407,6 +418,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
     return error;
 }
 
+#if defined BUILD_LIBMUX
 static int updater_mux_write_msg(struct mux_ctx *mux, uint32_t msgid,
 		const char *fmt, ...)
 {
@@ -641,6 +653,7 @@ static void update_mux_channel_cb(struct mux_ctx *ctx, uint32_t chanid,
 	break;
 	}
 }
+#endif
 
 static char *md5_to_str(const uint8_t *md5, char *str)
 {
@@ -653,6 +666,7 @@ static char *md5_to_str(const uint8_t *md5, char *str)
 
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 {
+#if defined BUILD_LIBMUX
 	int res;
 	eARUPDATER_ERROR ret, status;
 	eARSAL_ERROR aret;
@@ -838,6 +852,9 @@ out:
 	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
 			"update over mux completed status: %d", status);
 	return status;
+#else
+    return ARUPDATER_ERROR_SYSTEM;
+#endif
 }
 
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager)
@@ -1341,7 +1358,9 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
     {
         manager->uploader->isCanceled = 1;
 
+#if defined BUILD_LIBMUX
         update_mux_notify_status(manager->uploader, ARUPDATER_ERROR_UPLOADER);
+#endif
 
         ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
         if (manager->uploader->isDownloadMd5ThreadRunning == 1)
