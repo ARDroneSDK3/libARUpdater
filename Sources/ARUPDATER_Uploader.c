@@ -70,7 +70,7 @@
 #define ARUPDATER_UPLOADER_MD5_FILENAME          "md5_check.md5"
 #define ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX  ".tmp"
 #define ARUPDATER_UPLOADER_CHUNK_SIZE            32
-#define ARUPDATER_UPLOADER_MUX_CHUNK_SIZE        (512*1024)
+#define ARUPDATER_UPLOADER_MUX_CHUNK_SIZE        (128*1024)
 /* ***************************************
  *
  *             function implementation :
@@ -500,6 +500,10 @@ static int updater_mux_send_next_chunk(ARUPDATER_Uploader_t *up)
 
 	/* send chunk over mux */
 	n_bytes = ret;
+
+	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"sending chunk: id=%d size=%d", up->chunk_id, n_bytes);
+
 	ret = updater_mux_write_msg(up->mux, MUX_UPDATE_MSG_ID_CHUNK,
 			MUX_UPDATE_MSG_FMT_ENC_CHUNK, up->chunk_id,
 			up->chunk, n_bytes);
@@ -577,7 +581,7 @@ static void updater_mux_channel_recv(ARUPDATER_Manager_t *mngr,
 
 		/* notify progression */
 		percent = (double) (100.f * up->n_written) / (double)up->size;
-		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
 				"progression: %f%%", percent);
 		update_mux_notify_progression(up, percent);
 
@@ -591,6 +595,8 @@ static void updater_mux_channel_recv(ARUPDATER_Manager_t *mngr,
 
 		/* last chunk sent and ack successfully received
 		 * wait for update status from remote */
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"image sent waiting for status");
 	break;
 
 	case MUX_UPDATE_MSG_ID_STATUS:
