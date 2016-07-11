@@ -114,7 +114,7 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
     }
 }
 
-int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, const char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error)
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error)
 {
     eARUPDATER_ERROR err = ARUPDATER_OK;
     
@@ -189,7 +189,7 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         
         if (strlen(versionStrTmp) <= bufferSize)
         {
-            strcpy((char*)localVersionBuffer, versionStrTmp);
+            strcpy(localVersionBuffer, versionStrTmp);
         }
         else
         {

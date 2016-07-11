@@ -79,7 +79,7 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr);
  * @param[out] error : ARUPDATER_OK if operation went well, the description of the error otherwise. Can be null
  * @return 1 if the product plf is at the same version (or more recent) as the local plf
  */
-int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, const char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error);
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error);
 
 #endif /* _ARUPDATER_MANAGER_H_ */
 
