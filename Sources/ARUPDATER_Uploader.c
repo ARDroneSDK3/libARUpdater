@@ -659,7 +659,6 @@ static void update_mux_channel_cb(struct mux_ctx *ctx, uint32_t chanid,
 	break;
 	}
 }
-#endif
 
 static char *md5_to_str(const uint8_t *md5, char *str)
 {
@@ -672,15 +671,14 @@ static char *md5_to_str(const uint8_t *md5, char *str)
 
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 {
-#if defined BUILD_LIBMUX
 	int res;
+	ARUPDATER_PlfVersion v;
 	eARUPDATER_ERROR ret, status;
 	eARSAL_ERROR aret;
 	ARUPDATER_Uploader_t *up = manager->uploader;
 	uint16_t product;
 	struct stat statbuf;
-	int major, minor, rev;
-	char version[20];
+	char version[128];
 	uint8_t md5[ARSAL_MD5_LENGTH];
 	char md5_str[2*ARSAL_MD5_LENGTH + 1];
 	char dirpath[256];
@@ -738,15 +736,15 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 	}
 
 	/* get update file version */
-	ret = ARUPDATER_Utils_GetPlfVersion(filepath, &major, &minor, &rev);
+	ret = ARUPDATER_Utils_ReadPlfVersion(filepath, &v);
 	if (ret != ARUPDATER_OK) {
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
-			"ARUPDATER_Utils_GetPlfVersion error %d", aret);
+			"ARUPDATER_Utils_ReadPlfVersion error %d", aret);
 		status = ret;
 		goto out;
 	}
 
-	snprintf(version, sizeof(version), "%d.%d.%d", major, minor, rev);
+	ARUPDATER_Utils_PlfVersionToString(&v, version, sizeof(version));
 
 	/* open image file */
 	up->fd = open(filepath, O_RDONLY);

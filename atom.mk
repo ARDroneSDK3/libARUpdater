@@ -41,6 +41,7 @@ LOCAL_INSTALL_HEADERS := \
 	Includes/libARUpdater/ARUPDATER_Downloader.h:usr/include/libARUpdater/ \
 	Includes/libARUpdater/ARUPDATER_Error.h:usr/include/libARUpdater/ \
 	Includes/libARUpdater/ARUPDATER_Manager.h:usr/include/libARUpdater/ \
-	Includes/libARUpdater/ARUPDATER_Uploader.h:usr/include/libARUpdater/
+	Includes/libARUpdater/ARUPDATER_Uploader.h:usr/include/libARUpdater/ \
+	Includes/libARUpdater/ARUPDATER_Utils.h:usr/include/libARUpdater/
 
 include $(BUILD_LIBRARY)

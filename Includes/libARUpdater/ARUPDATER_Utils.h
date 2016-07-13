@@ -36,9 +36,61 @@
 //
 //
 
-#ifndef ARUpdaterCLibProject_ARUPDATER_Utils_h
-#define ARUpdaterCLibProject_ARUPDATER_Utils_h
+#ifndef _ARUPDATER_UTILS_H_
+#define _ARUPDATER_UTILS_H_
 
+#include <stdint.h>
 
+typedef enum
+{
+	ARUPDATER_PLF_TYPE_ALPHA = 0,	/* alpha or unknown version */
+	ARUPDATER_PLF_TYPE_BETA,	/* beta version */
+	ARUPDATER_PLF_TYPE_RC,		/* release candidate version */
+	ARUPDATER_PLF_TYPE_PROD,	/* production version */
+} eARUPDATER_PLF_TYPE;
 
-#endif
+typedef struct {
+	eARUPDATER_PLF_TYPE type;	/* version type */
+	uint32_t ver;			/* version */
+	uint32_t edit;			/* edition */
+	uint32_t ext;			/* extension*/
+	uint32_t patch;			/* patch level */
+} ARUPDATER_PlfVersion;
+
+/**
+ * @brief read the version of a given plf file
+ * @param[in] plfFilePath : file path of the plf file
+ * @param[out] version : pointer on the version structure
+ * @param[out] str : string pointer of version filled by function
+ * @param[out] size : string buffer size
+ * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+ */
+eARUPDATER_ERROR ARUPDATER_Utils_ReadPlfVersion(const char *plfFilePath, ARUPDATER_PlfVersion *version);
+
+/**
+ * @brief convert PlfVersion to representative string
+ * @param[in] v : plf version
+ * @param[out] buf : pointer on the string
+ * @param[in] size : string size
+ * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+ */
+eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionToString(const ARUPDATER_PlfVersion *v, char *buf, size_t size);
+
+/**
+ * @brief read the version of a given plf file
+ * @param[in] str : string plf version
+ * @param[out] version : pointer on the version structure
+ * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+ */
+eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionFromString(const char *str, ARUPDATER_PlfVersion *v);
+
+/**
+ * @brief Compare 2 plf versions
+ * @param[in] v1 : plf version 1
+ * @param[in] v2 : plf version 2
+ * @return It returns an integer less than 0 if v1 is lower than v2, 0 if versions are equal,
+ * greater than zero if ver1 is greater than v2
+ */
+int ARUPDATER_Utils_PlfVersionCompare(const ARUPDATER_PlfVersion *v1, const ARUPDATER_PlfVersion *v2);
+
+#endif /* _ARUPDATER_UTILS_H_ */

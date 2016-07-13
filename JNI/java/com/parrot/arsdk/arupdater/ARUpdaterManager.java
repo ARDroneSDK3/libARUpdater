@@ -46,7 +46,7 @@ public class ARUpdaterManager
 	private static native void nativeStaticInit();
     private native int nativeNew() throws ARUpdaterException;
     private native int nativeDelete(long manager);
-    private native boolean nativePlfVersionIsUpToDate(long manager, String rootFolder, int discoveryProduct, int version, int edition, int extension) throws ARUpdaterException;
+    private native boolean nativePlfVersionIsUpToDate(long manager, int discoveryProduct, String remoteVersion, String rootFolder) throws ARUpdaterException;
     private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
 
     private long nativeManager = 0;
@@ -175,9 +175,9 @@ public class ARUpdaterManager
      * @return true is the plf is up to date, false otherwise
      * @throws ARUpdaterException throws ARUpdaterException if there is a bad parameter or if there is no plf file in the root folder
      */
-    public ARUpdaterUploadPlfVersionInfo isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension) throws ARUpdaterException
+    public ARUpdaterUploadPlfVersionInfo isPlfVersionUpToDate(ARDISCOVERY_PRODUCT_ENUM product, String remoteVersion, String rootFolder) throws ARUpdaterException
     {
-        boolean upToDate = nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
+        boolean upToDate = nativePlfVersionIsUpToDate(nativeManager, product.getValue(), remoteVersion, rootFolder);
         ARUpdaterUploadPlfVersionInfo toReturn = new ARUpdaterUploadPlfVersionInfo(upToDate, this.localVersion);
         return toReturn;
     }

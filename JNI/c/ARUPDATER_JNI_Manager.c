@@ -181,11 +181,12 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeDe
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativePlfVersionIsUpToDate(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jint jProduct, jint jVersion, jint jEdition, jint jExtension)
+JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativePlfVersionIsUpToDate(JNIEnv *env, jobject jThis, jlong jManager, jint jProduct, jstring jRemoteVersion, jstring jRootFolder)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
     const char *rootFolder = (*env)->GetStringUTFChars(env, jRootFolder, 0);
+    const char *remoteVersion = (*env)->GetStringUTFChars(env, jRemoteVersion, 0);
 
     jclass thisClass = (*env)->GetObjectClass(env, jThis);
     jfieldID localVersionField = (*env)->GetFieldID(env, thisClass, "localVersion", "Ljava/lang/String;");
@@ -194,13 +195,18 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
     int bufferSize = 16;
     char *localVersionBuffer = malloc(bufferSize * sizeof(char));
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s %d %d %d %d", rootFolder, jProduct, jVersion, jEdition, jExtension);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%d %s %s", jProduct, remoteVersion, rootFolder);
 
-    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, rootFolder, (eARDISCOVERY_PRODUCT)jProduct, jVersion, jEdition, jExtension, localVersionBuffer, bufferSize, &result);
+    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, (eARDISCOVERY_PRODUCT)jProduct, remoteVersion, rootFolder, localVersionBuffer, bufferSize, &result);
 
     if (rootFolder != NULL)
     {
         (*env)->ReleaseStringUTFChars(env, jRootFolder, rootFolder);
+    }
+
+    if (remoteVersion != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jRemoteVersion, remoteVersion);
     }
 
     if (localVersionBuffer != NULL && result == ARUPDATER_OK)

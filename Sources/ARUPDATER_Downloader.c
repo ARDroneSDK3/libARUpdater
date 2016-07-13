@@ -393,9 +393,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     int nbUpdatesToDownload = 0;
-    int version;
-    int edit;
-    int ext;
+    ARUPDATER_PlfVersion v;
     eARUTILS_ERROR utilsError = ARUTILS_OK;
     char *device = NULL;
     char *deviceFolder = NULL;
@@ -466,15 +464,19 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
                 strcpy(existingPlfFilePath, deviceFolder);
                 strcat(existingPlfFilePath, fileName);
 
-                error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
+                error = ARUPDATER_Utils_ReadPlfVersion(existingPlfFilePath, &v);
             }
         }
         // else if the file does not exist, force to download
         else if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
         {
-            version = 0;
-            edit = 0;
-            ext = 0;
+            /* set version to 0.0.0 */
+            v.type = ARUPDATER_PLF_TYPE_PROD;
+            v.edit = 0;
+            v.ver = 0;
+            v.ext = 0;
+            v.patch = 0;
+
             error = ARUPDATER_OK;
 
             // also check that the directory exists
@@ -541,14 +543,8 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             strcat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE);
 
             strcat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM);
-            sprintf(buffer,"%i",version);
-            strncat(params, buffer, strlen(buffer));
-            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
-            sprintf(buffer,"%i",edit);
-            strncat(params, buffer, strlen(buffer));
-            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
-            sprintf(buffer,"%i",ext);
-            strncat(params, buffer, strlen(buffer));
+            ARUPDATER_Utils_PlfVersionToString(&v, buffer, sizeof(buffer));
+            strcat(params, buffer);
 
             strcat(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM);
             strcat(params, platform);

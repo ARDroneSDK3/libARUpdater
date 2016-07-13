@@ -43,6 +43,11 @@
 #include <libARDataTransfer/ARDATATRANSFER_Uploader.h>
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
 
+#define ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE        10
+#define ARUPDATER_MANAGER_FOLDER_SEPARATOR              "/"
+#define ARUPDATER_MANAGER_PLF_FOLDER                    "plfFolder/"
+#define ARUPDATER_MANAGER_PLF_EXTENSION                 ".plf"
+
 /**
  * @brief Manager structure
  * @see ARUPDATER_Manager_New ()
@@ -69,17 +74,15 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr);
 /**
  * @brief get the version of a given plf file
  * @param manager : pointer on the manager
- * @param[in] rootFolder : root folder of the plf
- * @param[in] product : the plf of the product to be tested
- * @param[in] version : the version of the remote plf
- * @param[in] edition : the edition of the remote plf
- * @param[in] extension : the extension of the remote plf
+ * @param[in] product : product type to be tested
+ * @param[in] remoteVersion : the remote version to be compared with local one
+ * @param[in] rootFolder : root folder of the local plf.
  * @param[out] localVersionBuffer : out buffer that will contain the version of the local plf
  * @param[in] bufferSize : The size of the localVersionBuffer
  * @param[out] error : ARUPDATER_OK if operation went well, the description of the error otherwise. Can be null
  * @return 1 if the product plf is at the same version (or more recent) as the local plf
  */
-int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error);
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, eARDISCOVERY_PRODUCT product, const char *remoteVersion, const char *rootFolder, char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error);
 
 #endif /* _ARUPDATER_MANAGER_H_ */
 
