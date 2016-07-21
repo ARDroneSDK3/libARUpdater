@@ -54,7 +54,8 @@
 #include "libARUpdater/ARUPDATER_Error.h"
 #include "libARUpdater/ARUPDATER_Manager.h"
 #include "libARUpdater/ARUPDATER_Downloader.h"
- #include "libARUpdater/ARUPDATER_Uploader.h"
+#include "libARUpdater/ARUPDATER_Uploader.h"
+#include "libARUpdater/ARUPDATER_Utils.h"
 
 #include "ARUPDATER_JNI.h"
 
@@ -227,6 +228,74 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
     }
 
     return isUpToDate;
+}
+
+JNIEXPORT jstring JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeReadPlfVersion(JNIEnv *env, jclass jClass, jstring jPlfFilePath)
+{
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    jstring jversion = NULL;
+
+    const char *plfFilePath = (*env)->GetStringUTFChars(env, jPlfFilePath, 0);
+    ARUPDATER_PlfVersion version;
+
+    if (plfFilePath != NULL)
+    {
+        result = ARUPDATER_Utils_ReadPlfVersion(plfFilePath, &version);
+        (*env)->ReleaseStringUTFChars(env, jPlfFilePath, plfFilePath);
+    }
+
+    if (result == ARUPDATER_OK)
+    {
+        char buffer[128];
+        result = ARUPDATER_Utils_PlfVersionToString(&version, buffer, sizeof(buffer));
+        if (result == ARUPDATER_OK)
+        {
+            jversion = (*env)->NewStringUTF(env, buffer);
+        }
+    }
+
+    return jversion;
+
+}
+
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeComparePlfVersions(JNIEnv *env, jclass jClass, jstring jVersion1, jstring jVersion2)
+{
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+
+    const char *version1 = (*env)->GetStringUTFChars(env, jVersion1, 0);
+    const char *version2 = (*env)->GetStringUTFChars(env, jVersion2, 0);
+
+    ARUPDATER_PlfVersion plfVersion1;
+    ARUPDATER_PlfVersion plfVersion2;
+    int ret = 0;
+
+    if (version1 != NULL)
+    {
+        result = ARUPDATER_Utils_PlfVersionFromString(version1, &plfVersion1);
+    }
+
+    if (result == ARUPDATER_OK && version2 != NULL)
+    {
+        result = ARUPDATER_Utils_PlfVersionFromString(version2, &plfVersion2);
+    }
+
+    if (result == ARUPDATER_OK)
+    {
+        ret = ARUPDATER_Utils_PlfVersionCompare(&plfVersion1, &plfVersion2);
+    }
+
+    if (version1 != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jVersion1, version1);
+    }
+
+    if (version2 != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jVersion2, version2);
+    }
+
+    return ret;
+
 }
 
 /*****************************************

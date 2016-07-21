@@ -48,6 +48,8 @@ public class ARUpdaterManager
     private native int nativeDelete(long manager);
     private native boolean nativePlfVersionIsUpToDate(long manager, int discoveryProduct, String remoteVersion, String rootFolder) throws ARUpdaterException;
     private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
+    private static native String nativeReadPlfVersion(String pflPath);
+    private static native int nativeComparePlfVersions(String version1, String version2);
 
     private long nativeManager = 0;
     private String localVersion = null;
@@ -185,6 +187,21 @@ public class ARUpdaterManager
     public boolean isPlfVersionBlacklisted(ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension)
     {
         return nativePlfVersionIsBlacklisted(product.getValue(), version, edition, extension);
+    }
+
+    public static String readPlfVersion(String plfPath)
+    {
+        return nativeReadPlfVersion(plfPath);
+    }
+
+    /**
+    * Compare two plf versions
+    * @return It returns an integer less than 0 if version1 is lower than version2, 0 if versions are equal,
+    * greater than zero if version1 is greater than version2
+    */
+    public static int comparePlfVersions(String version1, String version2)
+    {
+        return nativeComparePlfVersions(version1, version2);
     }
 
 }
