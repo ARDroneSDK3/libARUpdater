@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <libARSAL/ARSAL_Print.h>
 #include <libARSAL/ARSAL_Error.h>
@@ -104,16 +105,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
 
-    if(err == ARUPDATER_OK)
-    {
-        /* Create the downloader */
-        downloader = malloc (sizeof (ARUPDATER_Downloader_t));
-        if (downloader == NULL)
-        {
-            err = ARUPDATER_ERROR_ALLOC;
-        }
-    }
-
     if (err == ARUPDATER_OK)
     {
         if (manager->downloader != NULL)
@@ -122,10 +113,16 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         }
         else
         {
-            manager->downloader = downloader;
+             /* Create the downloader */
+            downloader = malloc (sizeof (ARUPDATER_Downloader_t));
+            if (downloader == NULL)
+            {
+                err = ARUPDATER_ERROR_ALLOC;
+            } else {
+                manager->downloader = downloader;
+            }
         }
     }
-
     /* Initialize to default values */
     if(err == ARUPDATER_OK)
     {
@@ -207,7 +204,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
                 if (downloader->blacklistedVersions[i] != NULL)
                 {
                     downloader->blacklistedVersions[i]->product = i;
-                    downloader->blacklistedVersions[i]->versions = calloc(ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC, sizeof(char**));
+                    downloader->blacklistedVersions[i]->versions = calloc(ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC, sizeof(char *));
                     downloader->blacklistedVersions[i]->nbVersionAllocated = ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC;
                     downloader->blacklistedVersions[i]->nbVersionBlacklisted = 0;
                 }
@@ -344,8 +341,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_SetUpdatesProductList(ARUPDATER_Manager_t 
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-
-    if (manager->downloader == NULL)
+    else if (manager->downloader == NULL)
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
@@ -397,21 +393,6 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     int nbUpdatesToDownload = 0;
-    if (manager == NULL)
-    {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
-    }
-
-    if (manager->downloader == NULL)
-    {
-        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
-    }
-
-    if (ARUPDATER_OK == error)
-    {
-        manager->downloader->updateHasBeenChecked = 1;
-    }
-
     int version;
     int edit;
     int ext;
@@ -424,6 +405,21 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     char *data;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
+    int ret;
+
+    if (manager == NULL)
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    else if (manager->downloader == NULL)
+    {
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+    }
+
+    if (ARUPDATER_OK == error)
+    {
+        manager->downloader->updateHasBeenChecked = 1;
+    }
 
     char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
     strcpy(plfFolder, manager->downloader->rootFolder);
@@ -447,23 +443,31 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
+        char *fileName = NULL;
         
         // read the header of the plf file
         deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
-        strcpy(deviceFolder, plfFolder);
-        strcat(deviceFolder, device);
-        strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+        if (!deviceFolder) {
+            error = ARUPDATER_ERROR_ALLOC;
+        } else {
+            strcpy(deviceFolder, plfFolder);
+            strcat(deviceFolder, device);
+            strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+            error = ARUPDATER_Utils_GetPlfInFolder(deviceFolder, &fileName);
+        }
 
-        char *fileName = NULL;
-        error = ARUPDATER_Utils_GetPlfInFolder(deviceFolder, &fileName);
         if (error == ARUPDATER_OK)
         {
             // file path = deviceFolder + plfFilename + \0
             existingPlfFilePath = malloc(strlen(deviceFolder) + strlen(fileName) + 1);
-            strcpy(existingPlfFilePath, deviceFolder);
-            strcat(existingPlfFilePath, fileName);
+            if (!existingPlfFilePath) {
+                error = ARUPDATER_ERROR_ALLOC;
+            } else {
+                strcpy(existingPlfFilePath, deviceFolder);
+                strcat(existingPlfFilePath, fileName);
 
-            error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
+                error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
+            }
         }
         // else if the file does not exist, force to download
         else if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
@@ -477,7 +481,9 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             FILE *dir = fopen(plfFolder, "r");
             if (dir == NULL)
             {
-                mkdir(plfFolder, S_IRWXU);
+                ret = mkdir(plfFolder, S_IRWXU);
+                if (ret < 0 && errno != EEXIST)
+                    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "mkdir '%s' error: %s", strerror(errno));
             }
             else
             {
@@ -685,6 +691,7 @@ void* ARUPDATER_Downloader_CheckUpdatesAsync(void *managerArg)
 void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
+    int resultSys = -1;
 
     ARUPDATER_Manager_t *manager = NULL;
     if (managerArg != NULL)
@@ -693,7 +700,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
+        return NULL;
     }
 
     if ((manager != NULL) && (manager->downloader != NULL))
@@ -702,7 +709,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
     }
     else
     {
-        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+        return NULL;
     }
 
     int shouldDownload = 0;
@@ -735,8 +742,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         ARSAL_Sem_t dlSem;
 
         char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
-        strcpy(plfFolder, manager->downloader->rootFolder);
-        strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+        if (!plfFolder) {
+            error = ARUPDATER_ERROR_ALLOC;
+        } else {
+            strcpy(plfFolder, manager->downloader->rootFolder);
+            strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
+        }
 
         int productIndex = 0;
         while ((error == ARUPDATER_OK) && (productIndex < manager->downloader->productCount) && (manager->downloader->isCanceled == 0))
@@ -746,15 +757,23 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
             uint16_t productId = ARDISCOVERY_getProductID(product);
 
             device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
+            if (!device) {
+                error = ARUPDATER_ERROR_ALLOC;
+                break;
+            }
             snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
 
             deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
-            strcpy(deviceFolder, plfFolder);
-            strcat(deviceFolder, device);
-            strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+            if (!deviceFolder) {
+                error = ARUPDATER_ERROR_ALLOC;
+            } else {
+                strcpy(deviceFolder, plfFolder);
+                strcat(deviceFolder, device);
+                strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+            }
 
             ARUPDATER_DownloadInformation_t *downloadInfo = manager->downloader->downloadInfos[product];
-            if (downloadInfo != NULL)
+            if (error == ARUPDATER_OK && downloadInfo != NULL)
             {
                 const char *const downloadUrl = downloadInfo->downloadUrl;
                 char *remoteMD5 = downloadInfo->md5Expected;
@@ -765,8 +784,9 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     manager->downloader->willDownloadPlfCallback(manager->downloader->completionArg, product, remoteVersion);
                 }
 
-                char *downloadEndUrl;
-                char *downloadServer;
+                char *downloadEndUrl = NULL;
+                char *downloadServer = NULL;
+                char *downloadedFinalFilePath = NULL;
                 char *downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
                 if(downloadedFileName != NULL && strlen(downloadedFileName) > 0)
                 {
@@ -774,19 +794,27 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 }
 
                 char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(downloadedFileName) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX) + 1);
-                strcpy(downloadedFilePath, deviceFolder);
-                strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
-                strcat(downloadedFilePath, downloadedFileName);
-                strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
+                if (!downloadedFilePath) {
+                    error = ARUPDATER_ERROR_ALLOC;
+                } else {
+                    strcpy(downloadedFilePath, deviceFolder);
+                    strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
+                    strcat(downloadedFilePath, downloadedFileName);
+                    strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
 
-                char *downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
-                strcpy(downloadedFinalFilePath, deviceFolder);
-                strcat(downloadedFinalFilePath, downloadedFileName);
+                    downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
+                    if (!downloadedFinalFilePath) {
+                        error = ARUPDATER_ERROR_ALLOC;
+                    } else {
+                        strcpy(downloadedFinalFilePath, deviceFolder);
+                        strcat(downloadedFinalFilePath, downloadedFileName);
+                    }
 
-                // explode the download url into server and endUrl
-                if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
-                {
-                    error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+                    // explode the download url into server and endUrl
+                    if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
+                    {
+                        error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
+                    }
                 }
 
                 // construct the url
@@ -798,15 +826,19 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     downloadEndUrl = strchr(urlWithoutHttpHeader, delimiter);
                     int serverLength = strlen(urlWithoutHttpHeader) - strlen(downloadEndUrl);
                     downloadServer = malloc(serverLength + 1);
-                    strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
-                    downloadServer[serverLength] = '\0';
+                    if (!downloadServer) {
+                        error = ARUPDATER_ERROR_ALLOC;
+                    } else {
+                        strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
+                        downloadServer[serverLength] = '\0';
+                    }
                 }
 
                 ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
                 // init the request semaphore
                 if (error == ARUPDATER_OK)
                 {
-                    int resultSys = ARSAL_Sem_Init(&dlSem, 0, 0);
+                    resultSys = ARSAL_Sem_Init(&dlSem, 0, 0);
                     if (resultSys != 0)
                     {
                         error = ARUPDATER_ERROR_SYSTEM;
@@ -820,7 +852,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                     {
                         ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
                         manager->downloader->downloadConnection = NULL;
-                        ARSAL_Sem_Destroy(&dlSem);
                         error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
                     }
                 }
@@ -841,8 +872,11 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 {
                     ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
                     manager->downloader->downloadConnection = NULL;
-                    ARSAL_Sem_Destroy(&dlSem);
                 }
+
+                if (resultSys == 0)
+                    ARSAL_Sem_Destroy(&dlSem);
+
                 ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
                 // check md5 match
@@ -940,7 +974,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         manager->downloader->isRunning = 0;
     }
 
-    if (manager->downloader->plfDownloadCompletionCallback != NULL)
+    if (manager && manager->downloader && manager->downloader->plfDownloadCompletionCallback)
     {
         manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
     }
@@ -951,7 +985,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    int resultSys = 0;
 
     if (manager == NULL)
     {
@@ -988,10 +1021,6 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
         }
         ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
-        if (resultSys != 0)
-        {
-            error = ARUPDATER_ERROR_SYSTEM;
-        }
     }
 
     return error;
@@ -1035,6 +1064,7 @@ char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platf
             break;
         case ARUPDATER_DOWNLOADER_IOS_PLATFORM :
             toReturn = ARUPDATER_DOWNLOADER_IOS_PLATFORM_NAME;
+            break;
         default:
             break;
     }
@@ -1057,12 +1087,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
     
     if (manager == NULL)
     {
-        error = ARUPDATER_ERROR_BAD_PARAMETER;
+        return ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
-    if (manager->downloader == NULL)
+    else if (manager->downloader == NULL)
     {
-        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+        return ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
     
     if (alsoCheckRemote != 0)
@@ -1200,7 +1229,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                             if (manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted >= manager->downloader->blacklistedVersions[i]->nbVersionAllocated)
                             {
                                 char** oldVersions = manager->downloader->blacklistedVersions[i]->versions;
-                                char** newVersions = realloc(manager->downloader->blacklistedVersions[i]->versions, ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC * sizeof(char**));
+                                char** newVersions = realloc(manager->downloader->blacklistedVersions[i]->versions, ARUPDATER_DOWNLOADER_FIRST_BLACKLIST_ALLOC * sizeof(char*));
                                 if (newVersions != NULL)
                                 {
                                     manager->downloader->blacklistedVersions[i]->versions = newVersions;
@@ -1237,7 +1266,9 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
         json_object_put(jsonObj);
     }
     
-    *blacklistedFirmwares = manager->downloader->blacklistedVersions;
+    if (manager && manager->downloader && blacklistedFirmwares)
+        *blacklistedFirmwares = manager->downloader->blacklistedVersions;
+
     return error;
 }
 
@@ -1249,8 +1280,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
     }
-    
-    if (manager->downloader == NULL)
+    else if (manager->downloader == NULL)
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
@@ -1418,6 +1448,9 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     {
         *err = error;
     }
-    *informations = manager->downloader->downloadInfos;
+
+    if (manager && manager->downloader && informations)
+        *informations = manager->downloader->downloadInfos;
+
     return  productIndex;
 }

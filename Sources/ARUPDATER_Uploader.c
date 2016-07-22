@@ -75,26 +75,22 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     
     if(err == ARUPDATER_OK)
     {
-        /* Create the uploader */
-        uploader = malloc (sizeof (ARUPDATER_Uploader_t));
-        if (uploader == NULL)
-        {
-            err = ARUPDATER_ERROR_ALLOC;
-        }
-    }
-    
-    if (err == ARUPDATER_OK)
-    {
         if (manager->uploader != NULL)
         {
             err = ARUPDATER_ERROR_MANAGER_ALREADY_INITIALIZED;
         }
         else
         {
-            manager->uploader = uploader;
+            uploader = malloc (sizeof (ARUPDATER_Uploader_t));
+            if (uploader == NULL)
+            {
+                err = ARUPDATER_ERROR_ALLOC;
+            } else {
+                manager->uploader = uploader;
+            }
         }
     }
-    
+
     /* Initialize to default values */
     if(err == ARUPDATER_OK)
     {
@@ -245,11 +241,15 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     
-    if ((manager != NULL) && (manager->uploader != NULL))
+    if (manager && manager->uploader)
     {
         manager->uploader->isRunning = 1;
     }
-    
+    else
+    {
+        return ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+
     eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
     
     char *sourceFileFolder = NULL;
@@ -349,11 +349,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
         free(fileName);
     }
 
-    if ((manager != NULL) && (manager->uploader != NULL))
-    {
-        manager->uploader->isRunning = 0;
-    }
-    
+    manager->uploader->isRunning = 0;
+
     if (manager->uploader->completionCallback != NULL)
     {
         manager->uploader->completionCallback(manager->uploader->completionArg, error);
@@ -369,6 +366,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     if ((manager != NULL) && (manager->uploader != NULL))
     {
         manager->uploader->isRunning = 1;
+    } else {
+        return ARUPDATER_ERROR_BAD_PARAMETER;
     }
     
     eARDATATRANSFER_ERROR dataTransferError = ARDATATRANSFER_OK;
@@ -463,7 +462,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     if (ARUPDATER_OK == error)
     {
         plfDestLocalPath = malloc(strlen(sourceFileFolder) + strlen(fileName) + 1);
-        if (sourceFilePath == NULL)
+        if (plfDestLocalPath == NULL)
         {
             error = ARUPDATER_ERROR_ALLOC;
         }
@@ -539,7 +538,8 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     // by default, do not resume an upload
     eARDATATRANSFER_UPLOADER_RESUME resumeMode = ARDATATRANSFER_UPLOADER_RESUME_FALSE;
     // delete the potential md5LocalPath file
-    unlink(md5LocalPath);
+    if (md5LocalPath)
+         unlink(md5LocalPath);
     
     // read distant plf md5
     ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
