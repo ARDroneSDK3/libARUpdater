@@ -221,10 +221,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
 
             // add here blacklisted version for SkyController
 
-            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->versions[0] = strdup("0.9.4");
-            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->nbVersionBlacklisted = 1;
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->versions[0] = strdup("0.9.1");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->versions[1] = strdup("1.0.0");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->nbVersionBlacklisted = 2;
 
-            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[0] = strdup("0.9.3");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[0] = strdup("1.0.0");
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->nbVersionBlacklisted = 1;
 
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_DELOS3]->versions[0] = strdup("0.3.3");
