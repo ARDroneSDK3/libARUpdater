@@ -298,6 +298,33 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeCo
 
 }
 
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeExtractUnixFileFromPlf(JNIEnv *env, jclass jClass, jstring jplfFileName,
+												     jstring joutFolder, jstring junixFileName)
+{
+    eARUPDATER_ERROR result = ARUPDATER_ERROR_BAD_PARAMETER;
+
+    const char *plfFileName  = (*env)->GetStringUTFChars(env, jplfFileName, 0);
+    const char *outFolder    = (*env)->GetStringUTFChars(env, joutFolder, 0);
+    const char *unixFileName = (*env)->GetStringUTFChars(env, junixFileName, 0);
+
+    if ((plfFileName != NULL) && (outFolder != NULL) && (unixFileName != NULL))
+    {
+        result = ARUPDATER_Utils_ExtractUnixFileFromPlf(plfFileName, outFolder, unixFileName);
+    }
+
+    if (plfFileName)
+	(*env)->ReleaseStringUTFChars(env, jplfFileName, plfFileName);
+
+    if (outFolder)
+	(*env)->ReleaseStringUTFChars(env, joutFolder, outFolder);
+
+    if (unixFileName)
+	(*env)->ReleaseStringUTFChars(env, junixFileName, unixFileName);
+
+    return result;
+}
+
+
 /*****************************************
  *
  *             Private implementation:

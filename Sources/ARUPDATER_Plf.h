@@ -40,10 +40,18 @@
 #ifndef _ARUPDATER_PLF_PRIVATE_H_
 #define _ARUPDATER_PLF_PRIVATE_H_
 
+#include <libARUpdater/ARUPDATER_Error.h>
+
+#if defined(BUILD_LIBPLFNG)
+
+#include <libplfng.h>
+typedef plf_phdr plf_phdr_t;
+
+#else
+
 #define PLF_CURRENT_VERSION  10
 #define PLF_HEADER_MAGIC     0x21464c50 //!< PLF magic number
 
-#include <libARUpdater/ARUPDATER_Error.h>
 
 typedef unsigned int   Plf_Word;        //!< Unsigned 32 bits integer
 typedef unsigned short Plf_Half;        //!< Unsigned 16 bits integer
@@ -66,6 +74,8 @@ typedef struct {
 	Plf_Word    p_lang;                   //!< Language zone
 	Plf_Word    p_size;                   //!< File size in bytes
 } plf_phdr_t;
+
+#endif
 
 /**
  * @brief read the header of a plf file

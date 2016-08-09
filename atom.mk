@@ -18,7 +18,8 @@ LOCAL_LIBRARIES := \
 
 LOCAL_CONDITIONAL_LIBRARIES := \
 	OPTIONAL:libmux \
-	OPTIONAL:libpomp
+	OPTIONAL:libpomp \
+	OPTIONAL:libplfng
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/Includes \

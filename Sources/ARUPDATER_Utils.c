@@ -45,6 +45,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #include <libARSAL/ARSAL_Print.h>
 #include <libARSAL/ARSAL_Endianness.h>
@@ -267,3 +269,113 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
     
     return error;
 }
+
+#if defined(BUILD_LIBPLFNG)
+
+static void ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger(void *priv, int prio, const char *fmt, va_list args)
+{
+    static const eARSAL_PRINT_LEVEL priotab[] = {
+	[LOG_EMERG]   = ARSAL_PRINT_FATAL,
+	[LOG_ALERT]   = ARSAL_PRINT_FATAL,
+	[LOG_CRIT]    = ARSAL_PRINT_FATAL,
+	[LOG_ERR]     = ARSAL_PRINT_ERROR,
+	[LOG_WARNING] = ARSAL_PRINT_WARNING,
+	[LOG_NOTICE]  = ARSAL_PRINT_INFO,
+	[LOG_INFO]    = ARSAL_PRINT_INFO,
+	[LOG_DEBUG]   = ARSAL_PRINT_DEBUG,
+    };
+    char buf[256];
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    ARSAL_PRINT(priotab[prio], ARUPDATER_UTILS_TAG, "libplfng: %s", buf);
+}
+
+eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName, const char *outFolder, const char *unixFileName)
+{
+    FILE *fp;
+    int ret, i, count, pos = -1;
+    plf_unixhdr hdr;
+    char *p, *buf = NULL;
+    const char *filename;
+    struct plfng *plf = NULL;
+    const int bufsize = 4096; /* avoid PATH_MAX headaches */
+
+    fp = fopen(plfFileName, "rb");
+    if (fp == NULL) {
+	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "fopen(%s): %s", plfFileName, strerror(errno));
+	ret = ARUPDATER_ERROR;
+	goto finish;
+    }
+
+    plf = plfng_new_from_file(fp);
+    if (plf == NULL) {
+	ret = ARUPDATER_ERROR_ALLOC;
+	goto finish;
+    }
+
+    buf = malloc(bufsize);
+    if (buf == NULL) {
+	ret = ARUPDATER_ERROR_ALLOC;
+	goto finish;
+    }
+
+    plfng_set_log_fn(plf, ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger, NULL);
+
+    count = plfng_get_section_count(plf);
+    if (count < 0) {
+	ret = ARUPDATER_ERROR_PLF;
+	goto finish;
+    }
+
+    for (i = 0; i < count; i++) {
+	/* probe section */
+	ret = plfng_get_unixfile_path(plf, i, &hdr, buf, bufsize);
+	if ((ret < 0) || !S_ISREG((mode_t)hdr.s_mode))
+	    /* probably not a U_UNIXFILE regular file */
+	    continue;
+
+	/* get trailing component of path */
+	p = strrchr(buf, '/');
+	filename = p ? p+1 : buf;
+
+	if (strcmp(filename, unixFileName) == 0) {
+	    /* we have a match */
+	    pos = i;
+	    break;
+	}
+    }
+
+    if (pos < 0) {
+	/* file was not found */
+	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "file '%s' not found in PLF file %s", unixFileName, plfFileName);
+	ret = ARUPDATER_ERROR_PLF;
+	goto finish;
+    }
+
+    /* now do the extraction */
+    snprintf(buf, bufsize, "%s/%s", outFolder, unixFileName);
+    ret = plfng_extract_unixfile(plf, pos, buf);
+    if (ret < 0) {
+	ret = ARUPDATER_ERROR_PLF;
+	goto finish;
+    }
+
+    /* everything went smoothly */
+    ret = ARUPDATER_OK;
+
+ finish:
+    if (fp)
+	fclose(fp);
+    plfng_destroy(plf);
+    free(buf);
+
+    return ret;
+}
+
+#else
+
+eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName, const char *outFolder, const char *unixFileName)
+{
+    return ARUPDATER_ERROR;
+}
+
+#endif /* BUILD_LIBPLFNG */

@@ -93,4 +93,17 @@ eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionFromString(const char *str, ARUPDATER
  */
 int ARUPDATER_Utils_PlfVersionCompare(const ARUPDATER_PlfVersion *v1, const ARUPDATER_PlfVersion *v2);
 
+/**
+ * @brief Extract a U_UNIFXILE regular file from a PLF file
+ *
+ * Example: a U_UNIXFILE section (regular file) with path "data/foo/config.txt" should be extracted
+ * by providing the last path component ("config.txt") as parameter @unixFileName.
+ *
+ * @param[in] plfFileName : PLF file path
+ * @param[in] outFolder : Directory path in which the file will be extracted
+ * @param[in] unixFileName : The name of the file we want to extract; also the name of the file written in outFolder
+ * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+ */
+eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName, const char *outFolder, const char *unixFileName);
+
 #endif /* _ARUPDATER_UTILS_H_ */

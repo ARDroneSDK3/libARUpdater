@@ -50,6 +50,7 @@ public class ARUpdaterManager
     private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
     private static native String nativeReadPlfVersion(String pflPath);
     private static native int nativeComparePlfVersions(String version1, String version2);
+    private static native int nativeExtractUnixFileFromPlf(String plfFileName, String outFolder, String unixFileName);
 
     private long nativeManager = 0;
     private String localVersion = null;
@@ -204,4 +205,16 @@ public class ARUpdaterManager
         return nativeComparePlfVersions(version1, version2);
     }
 
+    /**
+     * Extract a U_UNIFXILE regular file from a PLF file
+     *
+     * Example: a U_UNIXFILE section (regular file) with path "data/foo/config.txt" should be extracted
+     * by providing the last path component ("config.txt") as parameter unixFileName.
+     *
+     * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+     */
+    public static ARUPDATER_ERROR_ENUM extractUnixFileFromPlf(String plfFileName, String outFolder, String unixFileName)
+    {
+        return ARUPDATER_ERROR_ENUM.getFromValue(nativeExtractUnixFileFromPlf(plfFileName, outFolder, unixFileName));
+    }
 }
