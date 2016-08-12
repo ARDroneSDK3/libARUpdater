@@ -228,6 +228,9 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[0] = strdup("1.0.0");
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->nbVersionBlacklisted = 1;
 
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_BEBOP_2]->versions[0] = strdup("3.4.0");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_BEBOP_2]->nbVersionBlacklisted = 1;
+
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_DELOS3]->versions[0] = strdup("0.3.3");
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_DELOS3]->nbVersionBlacklisted = 1;
 
