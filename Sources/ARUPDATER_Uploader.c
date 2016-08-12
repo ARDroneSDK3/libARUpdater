@@ -668,9 +668,11 @@ static char *md5_to_str(const uint8_t *md5, char *str)
 
 	return str;
 }
+#endif
 
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 {
+#if defined BUILD_LIBMUX
 	int res;
 	ARUPDATER_PlfVersion v;
 	eARUPDATER_ERROR ret, status;
