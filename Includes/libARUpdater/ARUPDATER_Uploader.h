@@ -42,6 +42,8 @@
 #include <libARDiscovery/ARDISCOVERY_Discovery.h>
 #include <libARSAL/ARSAL_MD5_Manager.h>
 
+struct mux_ctx;
+
 typedef struct ARUPDATER_Uploader_t ARUPDATER_Uploader_t;
 
 /**
@@ -67,6 +69,7 @@ typedef void (*ARUPDATER_Uploader_PlfUploadCompletionCallback_t) (void* arg, eAR
  * @param manager : pointer on the manager
  * @param[in] rootFolder : root folder
  * @param[in] ftpManager : ftp manager initialized with the correct network (wifi or ble)
+ * @param[in] mux : optional mux context for usb network
  * @param[in] md5Manager : md5 manager
  * @param[in] product : enumerator on the enum
  * @param[in] progressCallback : callback which tells the progress of the download
@@ -76,8 +79,7 @@ typedef void (*ARUPDATER_Uploader_PlfUploadCompletionCallback_t) (void* arg, eAR
  * @return ARUPDATER_OK if operation went well, a description of the error otherwise
  * @see ARUPDATER_Uploader_Delete()
  */
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, int isAndroidApp, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg);
-
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, struct mux_ctx *mux, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, int isAndroidApp, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg);
 
 /**
  * @brief Delete the Uploader of the Manager

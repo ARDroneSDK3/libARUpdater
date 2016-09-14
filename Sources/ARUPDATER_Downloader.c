@@ -8,7 +8,7 @@
       notice, this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the 
+      the documentation and/or other materials provided with the
       distribution.
     * Neither the name of Parrot nor the names
       of its contributors may be used to endorse or promote products
@@ -22,7 +22,7 @@
     COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
     INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
     BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-    OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED 
+    OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
     AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
     OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
@@ -209,17 +209,33 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
                     downloader->blacklistedVersions[i]->nbVersionBlacklisted = 0;
                 }
             }
-            
+
             // add here blacklisted version for RollingSpider
             /* Example how to add blacklisted version in app
              downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE]->versions[0] = strdup("2.0.0");
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE]->nbVersionBlacklisted = 1;*/
-            
+
             // add here blacklisted version for JS
-            
+
             // add here blacklisted version for Bebop
-            
+
             // add here blacklisted version for SkyController
+
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->versions[0] = strdup("0.9.1");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->versions[1] = strdup("1.0.0");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->nbVersionBlacklisted = 2;
+
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[0] = strdup("1.0.0");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->nbVersionBlacklisted = 1;
+
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_BEBOP_2]->versions[0] = strdup("3.4.0");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_BEBOP_2]->nbVersionBlacklisted = 1;
+
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_DELOS3]->versions[0] = strdup("0.3.3");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_DELOS3]->nbVersionBlacklisted = 1;
+
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_WINGX]->versions[0] = strdup("0.3.3");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_MINIDRONE_WINGX]->nbVersionBlacklisted = 1;
         }
     }
 
@@ -232,11 +248,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
             err = ARUPDATER_ERROR_SYSTEM;
         }
     }
-    
+
     if (err == ARUPDATER_OK)
     {
         int resultSys = ARSAL_Mutex_Init(&manager->downloader->requestBlacklistLock);
-        
+
         if (resultSys != 0)
         {
             err = ARUPDATER_ERROR_SYSTEM;
@@ -302,7 +318,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
                         ARUPDATER_DownloadInformation_Delete(&downloadInfo);
                         manager->downloader->downloadInfos[product] = NULL;
                     }
-                    
+
                     ARUPDATER_Manager_BlacklistedFirmware_t *blacklistedVersions = manager->downloader->blacklistedVersions[product];
                     int j = 0;
                     for (j = 0; j < blacklistedVersions->nbVersionBlacklisted; j++)
@@ -316,13 +332,13 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
                 }
                 free(manager->downloader->downloadInfos);
                 free(manager->downloader->blacklistedVersions);
-                
+
                 if (manager->downloader->productList != NULL)
                 {
                     free(manager->downloader->productList);
                     manager->downloader->productList = NULL;
                 }
-                
+
                 free(manager->downloader);
                 manager->downloader = NULL;
             }
@@ -393,9 +409,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     int nbUpdatesToDownload = 0;
-    int version;
-    int edit;
-    int ext;
+    ARUPDATER_PlfVersion v;
     eARUTILS_ERROR utilsError = ARUTILS_OK;
     char *device = NULL;
     char *deviceFolder = NULL;
@@ -444,7 +458,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
         char *fileName = NULL;
-        
+
         // read the header of the plf file
         deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
         if (!deviceFolder) {
@@ -466,15 +480,19 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
                 strcpy(existingPlfFilePath, deviceFolder);
                 strcat(existingPlfFilePath, fileName);
 
-                error = ARUPDATER_Utils_GetPlfVersion(existingPlfFilePath, &version, &edit, &ext);
+                error = ARUPDATER_Utils_ReadPlfVersion(existingPlfFilePath, &v);
             }
         }
         // else if the file does not exist, force to download
         else if (error == ARUPDATER_ERROR_PLF_FILE_NOT_FOUND)
         {
-            version = 0;
-            edit = 0;
-            ext = 0;
+            /* set version to 0.0.0 */
+            v.type = ARUPDATER_PLF_TYPE_PROD;
+            v.edit = 0;
+            v.ver = 0;
+            v.ext = 0;
+            v.patch = 0;
+
             error = ARUPDATER_OK;
 
             // also check that the directory exists
@@ -541,14 +559,8 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             strcat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE);
 
             strcat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM);
-            sprintf(buffer,"%i",version);
-            strncat(params, buffer, strlen(buffer));
-            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
-            sprintf(buffer,"%i",edit);
-            strncat(params, buffer, strlen(buffer));
-            strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
-            sprintf(buffer,"%i",ext);
-            strncat(params, buffer, strlen(buffer));
+            ARUPDATER_Utils_PlfVersionToString(&v, buffer, sizeof(buffer));
+            strcat(params, buffer);
 
             strcat(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM);
             strcat(params, platform);
@@ -561,7 +573,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             strcat(endUrl, device);
             strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_URL);
             strcat(endUrl, params);
-            
+
             utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestConnection, endUrl, (uint8_t**)&dataPtr, &dataSize, NULL, NULL);
             if (utilsError != ARUTILS_OK)
             {
@@ -1006,7 +1018,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_CancelThread(ARUPDATER_Manager_t *manager)
             ARUTILS_Http_Connection_Cancel(manager->downloader->requestConnection);
         }
         ARSAL_Mutex_Unlock(&manager->downloader->requestLock);
-        
+
         ARSAL_Mutex_Lock(&manager->downloader->requestBlacklistLock);
         if (manager->downloader->requestBlacklistConnection != NULL)
         {
@@ -1074,7 +1086,7 @@ char *ARUPDATER_Downloader_GetPlatformName(eARUPDATER_Downloader_Platforms platf
 
 eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDATER_Manager_t* manager, int alsoCheckRemote, ARUPDATER_Manager_BlacklistedFirmware_t ***blacklistedFirmwares)
 {
-    eARUPDATER_ERROR error = ARUPDATER_OK;    
+    eARUPDATER_ERROR error = ARUPDATER_OK;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
     uint32_t dataSize;
@@ -1084,7 +1096,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
     json_object *jsonObj = NULL;
     array_list *blacklistedRemoteList = NULL;
     char *device = NULL;
-    
+
     if (manager == NULL)
     {
         return ARUPDATER_ERROR_BAD_PARAMETER;
@@ -1093,7 +1105,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
     {
         return ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
-    
+
     if (alsoCheckRemote != 0)
     {
         if (error == ARUPDATER_OK)
@@ -1104,7 +1116,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                 error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
             }
         }
-        
+
         // init the request semaphore
         ARSAL_Mutex_Lock(&manager->downloader->requestBlacklistLock);
         if (error == ARUPDATER_OK)
@@ -1128,24 +1140,24 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             }
         }
         ARSAL_Mutex_Unlock(&manager->downloader->requestBlacklistLock);
-        
+
         // request the php
         if (error == ARUPDATER_OK)
         {
             // create the url params
             char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
-            
+
             strcpy(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM_BEGIN);
             strcat(params, platform);
-            
+
             strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
             strcat(params, manager->downloader->appVersion);
-            
+
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
             strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL);
             strcat(endUrl, params);
-            
+
             utilsError = ARUTILS_Http_Get_WithBuffer(manager->downloader->requestBlacklistConnection, endUrl, (uint8_t**)&dataPtr, &dataSize, NULL, NULL);
             if (utilsError != ARUTILS_OK)
             {
@@ -1165,14 +1177,14 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             free(params);
             params = NULL;
         }
-        
+
         // use blacklist info from server
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
             char *result;
             result = strtok(data, "|");
-            
+
             // if the server has no error
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
@@ -1181,7 +1193,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                 {
                     jsonObj = json_tokener_parse(jsonAsStr);
                 }
-                
+
                 if ((jsonObj == NULL) || is_error(jsonObj))
                 {
                     jsonObj = NULL;
@@ -1194,7 +1206,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                 error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
             }
         }
-        
+
         // add all blacklisted versions from server to the blacklisted versions
         if (error == ARUPDATER_OK)
         {
@@ -1203,16 +1215,16 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             for (i = 0; (error == ARUPDATER_OK) && (i < ARDISCOVERY_PRODUCT_MAX); i++)
             {
                 uint16_t productId = ARDISCOVERY_getProductID(manager->downloader->blacklistedVersions[i]->product);
-                
+
                 device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
                 snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
-                
+
                 json_object *productJsonObj = json_object_object_get (jsonObj, device);
                 if ((productJsonObj != NULL) && !is_error(productJsonObj))
                 {
                     blacklistedRemoteList = json_object_get_array(productJsonObj);
                 }
-                
+
                 // if it exists blacklisted version for this product
                 if ((blacklistedRemoteList != NULL) && !is_error(blacklistedRemoteList))
                 {
@@ -1241,7 +1253,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                                     error = ARUPDATER_ERROR_ALLOC;
                                 }
                             }
-                            
+
                             // recheck if we have enough place
                             if ((error == ARUPDATER_OK) && (manager->downloader->blacklistedVersions[i]->nbVersionBlacklisted <= manager->downloader->blacklistedVersions[i]->nbVersionAllocated))
                             {
@@ -1251,7 +1263,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
                         }
                     }
                 }
-                
+
                 if (device != NULL)
                 {
                     free(device);
@@ -1260,12 +1272,12 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             }
         }
     }
-    
+
     if (jsonObj != NULL)
     {
         json_object_put(jsonObj);
     }
-    
+
     if (manager && manager->downloader && blacklistedFirmwares)
         *blacklistedFirmwares = manager->downloader->blacklistedVersions;
 
@@ -1284,7 +1296,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
     }
-    
+
     if (ARUPDATER_OK == error)
     {
         manager->downloader->updateHasBeenChecked = 1;
@@ -1299,7 +1311,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     char *data;
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
-    
+
     if (error == ARUPDATER_OK)
     {
         platform = ARUPDATER_Downloader_GetPlatformName(manager->downloader->appPlatform);
@@ -1318,10 +1330,10 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
     //{
         // for each product, check if update is needed
         uint16_t productId = ARDISCOVERY_getProductID(product);
-        
+
         device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
         snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
-        
+
         // init the request semaphore
         ARSAL_Mutex_Lock(&manager->downloader->requestLock);
         if (error == ARUPDATER_OK)
@@ -1353,10 +1365,10 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             char *params = malloc(ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH);
             strcpy(params, ARUPDATER_DOWNLOADER_PRODUCT_PARAM);
             strcat(params, device);
-            
+
             strcat(params, ARUPDATER_DOWNLOADER_SERIAL_PARAM);
             strcat(params, ARUPDATER_DOWNLOADER_SERIAL_DEFAULT_VALUE);
-            
+
             strcat(params, ARUPDATER_DOWNLOADER_VERSION_PARAM);
             sprintf(buffer,"%i",version);
             strncat(params, buffer, strlen(buffer));
@@ -1366,13 +1378,13 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             strcat(params, ARUPDATER_DOWNLOADER_VERSION_SEPARATOR);
             sprintf(buffer,"%i",ext);
             strncat(params, buffer, strlen(buffer));
-            
+
             strcat(params, ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM);
             strcat(params, platform);
-            
+
             strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
             strcat(params, manager->downloader->appVersion);
-            
+
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
             strcat(endUrl, device);
@@ -1385,7 +1397,7 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
                 ARSAL_PRINT (ARSAL_PRINT_DEBUG, ARUPDATER_DOWNLOADER_TAG, "%d", utilsError);
                 error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
             }
-            
+
             ARSAL_Mutex_Lock(&manager->downloader->requestLock);
             if (manager->downloader->requestConnection != NULL)
             {
@@ -1399,14 +1411,14 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             free(params);
             params = NULL;
         }
-        
+
         // check if plf file need to be updated
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
             char *result;
             result = strtok(data, "|");
-            
+
             // if this plf is not up to date
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
             {
@@ -1440,10 +1452,10 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
             free(device);
             device = NULL;
         }
-        
+
         productIndex++;
     }
-    
+
     if (err != NULL)
     {
         *err = error;

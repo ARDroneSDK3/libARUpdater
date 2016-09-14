@@ -36,6 +36,7 @@
  **/
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <libARSAL/ARSAL_Print.h>
 
 #include <libARUpdater/ARUPDATER_Error.h>
@@ -114,13 +115,16 @@ void ARUPDATER_Manager_Delete (ARUPDATER_Manager_t **managerPtrAddr)
     }
 }
 
-int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const char *const rootFolder, eARDISCOVERY_PRODUCT product, int version, int edition, int extension, const char *localVersionBuffer, size_t bufferSize, eARUPDATER_ERROR *error)
+int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager,
+		eARDISCOVERY_PRODUCT product, const char *remoteVersion,
+		const char *rootFolder, char *localVersionBuffer,
+		size_t bufferSize, eARUPDATER_ERROR *error)
 {
     eARUPDATER_ERROR err = ARUPDATER_OK;
-    
-    int sourceVersion, sourceEdition, sourceExtension;
-    int retVal = 1;
-    
+    ARUPDATER_PlfVersion local;
+    ARUPDATER_PlfVersion remote;
+    int ret, retVal = 1;
+
     char *device = NULL;
     char *productFolder = NULL;
     char *plfFilename = NULL;
@@ -165,52 +169,24 @@ int ARUPDATER_Manager_PlfVersionIsUpToDate(ARUPDATER_Manager_t *manager, const c
         strcpy(sourceFilePath, productFolder);
         strcat(sourceFilePath, plfFilename);
 
-        err = ARUPDATER_Utils_GetPlfVersion(sourceFilePath, &sourceVersion, &sourceEdition, &sourceExtension);
+        /* Extract plf version from local file */
+        err = ARUPDATER_Utils_ReadPlfVersion(sourceFilePath, &local);
     }
-    
-    if ((err == ARUPDATER_OK) && (localVersionBuffer != NULL))
-    {
-        char buffer[ARUPDATER_MANAGER_VERSION_ELEMENT_BUFFER_SIZE];
-        char versionStrTmp[ARUPDATER_MANAGER_FULL_VERSION_BUFFER_SIZE];
-        
-        // version
-        sprintf(buffer,"%i",sourceVersion);
-        strcpy(versionStrTmp, buffer);
-        strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
-        
-        // edition
-        sprintf(buffer,"%i",sourceEdition);
-        strcat(versionStrTmp, buffer);
-        strcat(versionStrTmp, ARUPDATER_MANAGER_VERSION_SEPARATOR);
-        
-        // extension
-        sprintf(buffer,"%i",sourceExtension);
-        strcat(versionStrTmp, buffer);
-        
-        if (strlen(versionStrTmp) <= bufferSize)
-        {
-            strcpy((char*)localVersionBuffer, versionStrTmp);
-        }
-        else
-        {
-            err = ARUPDATER_ERROR_MANAGER_BUFFER_TOO_SMALL;
-        }
-    }
-    
+
     if (err == ARUPDATER_OK)
     {
-        if (sourceVersion > version)
-        {
-            retVal = 0;
-        }
-        else if((sourceVersion == version) && (sourceEdition > edition))
-        {
-            retVal = 0;
-        }
-        else if((sourceVersion == version) && (sourceEdition == edition) && (sourceExtension > extension))
-        {
-            retVal = 0;
-        }
+
+        /* Convert local version to string  */
+        ARUPDATER_Utils_PlfVersionToString(&local, localVersionBuffer, bufferSize);
+
+        /* Parse remote version and convert it into PlfVersion structure */
+        ARUPDATER_Utils_PlfVersionFromString(remoteVersion, &remote);
+
+        /* Compare versions */
+        ret = ARUPDATER_Utils_PlfVersionCompare(&local, &remote);
+        retVal = (ret > 0) ? 0 : 1;
+
+        ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_MANAGER_TAG, "remote:'%s' local:'%s' uptodate=%d", remoteVersion, localVersionBuffer, retVal);
     }
     
     if (productFolder)

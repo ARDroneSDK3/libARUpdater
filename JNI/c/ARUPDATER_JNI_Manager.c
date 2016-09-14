@@ -54,7 +54,8 @@
 #include "libARUpdater/ARUPDATER_Error.h"
 #include "libARUpdater/ARUPDATER_Manager.h"
 #include "libARUpdater/ARUPDATER_Downloader.h"
- #include "libARUpdater/ARUPDATER_Uploader.h"
+#include "libARUpdater/ARUPDATER_Uploader.h"
+#include "libARUpdater/ARUPDATER_Utils.h"
 
 #include "ARUPDATER_JNI.h"
 
@@ -181,11 +182,12 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeDe
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativePlfVersionIsUpToDate(JNIEnv *env, jobject jThis, jlong jManager, jstring jRootFolder, jint jProduct, jint jVersion, jint jEdition, jint jExtension)
+JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativePlfVersionIsUpToDate(JNIEnv *env, jobject jThis, jlong jManager, jint jProduct, jstring jRemoteVersion, jstring jRootFolder)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
     const char *rootFolder = (*env)->GetStringUTFChars(env, jRootFolder, 0);
+    const char *remoteVersion = (*env)->GetStringUTFChars(env, jRemoteVersion, 0);
 
     jclass thisClass = (*env)->GetObjectClass(env, jThis);
     jfieldID localVersionField = (*env)->GetFieldID(env, thisClass, "localVersion", "Ljava/lang/String;");
@@ -194,13 +196,18 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
     int bufferSize = 16;
     char *localVersionBuffer = malloc(bufferSize * sizeof(char));
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s %d %d %d %d", rootFolder, jProduct, jVersion, jEdition, jExtension);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%d %s %s", jProduct, remoteVersion, rootFolder);
 
-    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, rootFolder, (eARDISCOVERY_PRODUCT)jProduct, jVersion, jEdition, jExtension, localVersionBuffer, bufferSize, &result);
+    int isUpToDate = ARUPDATER_Manager_PlfVersionIsUpToDate(nativeManager, (eARDISCOVERY_PRODUCT)jProduct, remoteVersion, rootFolder, localVersionBuffer, bufferSize, &result);
 
     if (rootFolder != NULL)
     {
         (*env)->ReleaseStringUTFChars(env, jRootFolder, rootFolder);
+    }
+
+    if (remoteVersion != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jRemoteVersion, remoteVersion);
     }
 
     if (localVersionBuffer != NULL && result == ARUPDATER_OK)
@@ -222,6 +229,101 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nati
 
     return isUpToDate;
 }
+
+JNIEXPORT jstring JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeReadPlfVersion(JNIEnv *env, jclass jClass, jstring jPlfFilePath)
+{
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+    jstring jversion = NULL;
+
+    const char *plfFilePath = (*env)->GetStringUTFChars(env, jPlfFilePath, 0);
+    ARUPDATER_PlfVersion version;
+
+    if (plfFilePath != NULL)
+    {
+        result = ARUPDATER_Utils_ReadPlfVersion(plfFilePath, &version);
+        (*env)->ReleaseStringUTFChars(env, jPlfFilePath, plfFilePath);
+    }
+
+    if (result == ARUPDATER_OK)
+    {
+        char buffer[128];
+        result = ARUPDATER_Utils_PlfVersionToString(&version, buffer, sizeof(buffer));
+        if (result == ARUPDATER_OK)
+        {
+            jversion = (*env)->NewStringUTF(env, buffer);
+        }
+    }
+
+    return jversion;
+
+}
+
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeComparePlfVersions(JNIEnv *env, jclass jClass, jstring jVersion1, jstring jVersion2)
+{
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+
+    const char *version1 = (*env)->GetStringUTFChars(env, jVersion1, 0);
+    const char *version2 = (*env)->GetStringUTFChars(env, jVersion2, 0);
+
+    ARUPDATER_PlfVersion plfVersion1;
+    ARUPDATER_PlfVersion plfVersion2;
+    int ret = 0;
+
+    if (version1 != NULL)
+    {
+        result = ARUPDATER_Utils_PlfVersionFromString(version1, &plfVersion1);
+    }
+
+    if (result == ARUPDATER_OK && version2 != NULL)
+    {
+        result = ARUPDATER_Utils_PlfVersionFromString(version2, &plfVersion2);
+    }
+
+    if (result == ARUPDATER_OK)
+    {
+        ret = ARUPDATER_Utils_PlfVersionCompare(&plfVersion1, &plfVersion2);
+    }
+
+    if (version1 != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jVersion1, version1);
+    }
+
+    if (version2 != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, jVersion2, version2);
+    }
+
+    return ret;
+
+}
+
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeExtractUnixFileFromPlf(JNIEnv *env, jclass jClass, jstring jplfFileName,
+												     jstring joutFolder, jstring junixFileName)
+{
+    eARUPDATER_ERROR result = ARUPDATER_ERROR_BAD_PARAMETER;
+
+    const char *plfFileName  = (*env)->GetStringUTFChars(env, jplfFileName, 0);
+    const char *outFolder    = (*env)->GetStringUTFChars(env, joutFolder, 0);
+    const char *unixFileName = (*env)->GetStringUTFChars(env, junixFileName, 0);
+
+    if ((plfFileName != NULL) && (outFolder != NULL) && (unixFileName != NULL))
+    {
+        result = ARUPDATER_Utils_ExtractUnixFileFromPlf(plfFileName, outFolder, unixFileName);
+    }
+
+    if (plfFileName)
+	(*env)->ReleaseStringUTFChars(env, jplfFileName, plfFileName);
+
+    if (outFolder)
+	(*env)->ReleaseStringUTFChars(env, joutFolder, outFolder);
+
+    if (unixFileName)
+	(*env)->ReleaseStringUTFChars(env, junixFileName, unixFileName);
+
+    return result;
+}
+
 
 /*****************************************
  *

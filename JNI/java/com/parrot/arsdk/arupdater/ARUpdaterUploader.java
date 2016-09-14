@@ -36,6 +36,7 @@ import com.parrot.arsdk.arsal.ARSALPrint;
 import com.parrot.arsdk.ardiscovery.ARDISCOVERY_PRODUCT_ENUM;
 import com.parrot.arsdk.arutils.ARUtilsManager;
 import com.parrot.arsdk.arsal.ARSALMd5Manager;
+import com.parrot.mux.Mux;
 
 
 public class ARUpdaterUploader
@@ -45,7 +46,7 @@ public class ARUpdaterUploader
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew(long manager, String rootFolder, long utilsManager, long md5Manager, int isAndroidApp, int discoveryProduct,
+    private native int nativeNew(long manager, String rootFolder, long muxCtx, long utilsManager, long md5Manager, int isAndroidApp, int discoveryProduct,
     	ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
     	ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
@@ -76,6 +77,7 @@ public class ARUpdaterUploader
 	/**
      * Creates the ARUpdater Uploader
      * @param rootFolder The root folder
+     * @param mux The mux instance for usb upload (optional)
      * @param utilsManager The utils manager initialized with the correct network (wifi or ble)
      * @param product see {@link ARDISCOVERY_PRODUCT_ENUM}
      * @param plfUploadProgressListener The available progress listener
@@ -85,12 +87,29 @@ public class ARUpdaterUploader
      * @return void
      * @throws ARUpdaterException if error
      */
-    public void createUpdaterUploader(String rootFolder, ARUtilsManager utilsManager, ARSALMd5Manager md5Manager, boolean isAndroidApp, ARDISCOVERY_PRODUCT_ENUM product,
-        ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
-        ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs) throws ARUpdaterException
+    public void createUpdaterUploader(String rootFolder, Mux mux, ARUtilsManager utilsManager, ARSALMd5Manager md5Manager, boolean isAndroidApp, ARDISCOVERY_PRODUCT_ENUM product,
+                                      ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs,
+                                      ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs) throws ARUpdaterException
     {
         int isAndroidAppInt = (isAndroidApp) ? 1 : 0;
-    	int result = nativeNew(nativeManager, rootFolder, utilsManager.getManager(), md5Manager.getNativeManager(), isAndroidAppInt, product.getValue(), plfUploadProgressListener, progressArgs, plfUploadCompletionListener, completionArgs);
+        long muxNative;
+        int result;
+
+        /* handle case with or without mux */
+        if (mux != null) {
+            Mux.Ref muxRef;
+            muxRef = mux.newMuxRef();
+            muxNative = muxRef.getCPtr();
+            result = nativeNew(nativeManager, rootFolder, muxNative, utilsManager.getManager(),
+                               md5Manager.getNativeManager(), isAndroidAppInt, product.getValue(), plfUploadProgressListener,
+                               progressArgs, plfUploadCompletionListener, completionArgs);
+            muxRef.release();
+        } else {
+            muxNative = 0;
+            result = nativeNew(nativeManager, rootFolder, muxNative, utilsManager.getManager(),
+                    md5Manager.getNativeManager(), isAndroidAppInt, product.getValue(), plfUploadProgressListener,
+                    progressArgs, plfUploadCompletionListener, completionArgs);
+        }
 
     	ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
 

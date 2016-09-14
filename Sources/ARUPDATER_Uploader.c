@@ -35,8 +35,23 @@
  * @author djavan.bertrand@parrot.com
  **/
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <signal.h>
+#include <poll.h>
+
+#if defined BUILD_LIBMUX
+#include <libpomp.h>
+#include <libmux.h>
+#include <libmux-update.h>
+#endif
+
 #include <libARSAL/ARSAL_Print.h>
 #include <libARUtils/ARUtils.h>
 #include <libARSAL/ARSAL_Error.h>
@@ -55,16 +70,19 @@
 #define ARUPDATER_UPLOADER_MD5_FILENAME          "md5_check.md5"
 #define ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX  ".tmp"
 #define ARUPDATER_UPLOADER_CHUNK_SIZE            32
+#define ARUPDATER_UPLOADER_MUX_CHUNK_SIZE        (128*1024)
 /* ***************************************
  *
  *             function implementation :
  *
  *****************************************/
 
-eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, int isAndroidApp, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg)
+eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char *const rootFolder, struct mux_ctx *mux, ARUTILS_Manager_t *ftpManager, ARSAL_MD5_Manager_t *md5Manager, int isAndroidApp, eARDISCOVERY_PRODUCT product, ARUPDATER_Uploader_PlfUploadProgressCallback_t progressCallback, void *progressArg, ARUPDATER_Uploader_PlfUploadCompletionCallback_t completionCallback, void *completionArg)
 {
     ARUPDATER_Uploader_t *uploader = NULL;
     eARUPDATER_ERROR err = ARUPDATER_OK;
+    int ret;
+    int pipefds[2];
     char *slash = NULL;
     
     // Check parameters
@@ -72,6 +90,11 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     {
         err = ARUPDATER_ERROR_BAD_PARAMETER;
     }
+
+#if !defined BUILD_LIBMUX
+    if (mux != NULL)
+        err = ARUPDATER_ERROR_BAD_PARAMETER;
+#endif
     
     if(err == ARUPDATER_OK)
     {
@@ -119,6 +142,12 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         uploader->product = product;
         uploader->isAndroidApp = isAndroidApp;
         uploader->ftpManager = ftpManager;
+        uploader->mux = mux;
+#if defined BUILD_LIBMUX
+        if (uploader->mux)
+            mux_ref(uploader->mux);
+#endif
+
         uploader->md5Manager = md5Manager;
         
         uploader->isRunning = 0;
@@ -156,6 +185,25 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         }
     }
     
+    if (err == ARUPDATER_OK)
+    {
+        /* create pair of pipes for mux update */
+        ret = pipe(pipefds);
+        if (ret < 0) {
+             ret = -errno;
+             ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+                  "pipe error %d", strerror(-ret));
+             err = ARUPDATER_ERROR_SYSTEM;
+        }
+
+        /* set pipes non blocking */
+        fcntl(pipefds[0], F_SETFL, fcntl(pipefds[0], F_GETFL, 0) | O_NONBLOCK);
+        fcntl(pipefds[1], F_SETFL, fcntl(pipefds[1], F_GETFL, 0) | O_NONBLOCK);
+
+        manager->uploader->pipefds[0] = pipefds[0];
+        manager->uploader->pipefds[1] = pipefds[1];
+    }
+
     /* delete the uploader if an error occurred */
     if (err != ARUPDATER_OK)
     {
@@ -165,7 +213,6 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
     
     return err;
 }
-
 
 eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
 {
@@ -193,7 +240,14 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
                 manager->uploader->rootFolder = NULL;
                 
                 ARDATATRANSFER_Manager_Delete(&manager->uploader->dataTransferManager);
-                
+                close(manager->uploader->pipefds[0]);
+                close(manager->uploader->pipefds[1]);
+#if defined BUILD_LIBMUX
+                if (manager->uploader->mux) {
+                    mux_unref(manager->uploader->mux);
+                    manager->uploader->mux = NULL;
+                }
+#endif
                 free(manager->uploader);
                 manager->uploader = NULL;
             }
@@ -222,6 +276,11 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         if ((ARDISCOVERY_getProductService(manager->uploader->product) == ARDISCOVERY_PRODUCT_BLESERVICE) && (manager->uploader->isAndroidApp == 1))
         {
             error = ARUPDATER_Uploader_ThreadRunAndroidDelos(manager);
+        }
+        else if (ARDISCOVERY_getProductService(manager->uploader->product) == ARDISCOVERY_PRODUCT_USBSERVICE)
+        {
+           // upload plf over mux
+           error = ARUPDATER_Uploader_ThreadRunMux(manager);
         }
         else
         {
@@ -357,6 +416,451 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunAndroidDelos(ARUPDATER_Manager_t *m
     }
     
     return error;
+}
+
+#if defined BUILD_LIBMUX
+static int updater_mux_write_msg(struct mux_ctx *mux, uint32_t msgid,
+		const char *fmt, ...)
+{
+	int res = 0;
+	struct pomp_msg *msg = NULL;
+	va_list args;
+
+	msg = pomp_msg_new();
+	if (msg == NULL)
+		return -ENOMEM;
+
+	va_start(args, fmt);
+	res = pomp_msg_writev(msg, msgid, fmt, args);
+	va_end(args);
+	if (res < 0) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"pomp_msg_writev error: %s", strerror(-res));
+		goto out;
+	}
+
+	res = mux_encode(mux, MUX_UPDATE_CHANNEL_ID_UPDATE,
+			pomp_msg_get_buffer(msg));
+	if (res < 0 && res != -EPIPE) {
+
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"mux_encode error: %s", strerror(-res));
+		goto out;
+	}
+
+out:
+	pomp_msg_destroy(msg);
+	return res;
+}
+
+static void update_mux_notify_status(ARUPDATER_Uploader_t *up,
+		eARUPDATER_ERROR status)
+{
+	int ret;
+	int event = status;
+
+	do {
+		ret = write(up->pipefds[1], &event, sizeof(event));
+	} while (ret < 0 && errno == EINTR);
+}
+
+static void update_mux_notify_progression(ARUPDATER_Uploader_t *up,
+		float percent)
+{
+	int ret;
+	int event = (int)percent;
+
+	if (event <= 0)
+		return;
+
+	do {
+		ret = write(up->pipefds[1], &event, sizeof(event));
+	} while (ret < 0 && errno == EINTR);
+}
+
+static int updater_mux_send_next_chunk(ARUPDATER_Uploader_t *up)
+{
+	ssize_t ret;
+	uint32_t n_bytes;
+
+	/* read file chunk */
+	ret = read(up->fd, up->chunk, ARUPDATER_UPLOADER_MUX_CHUNK_SIZE);
+	if (ret < 0) {
+		ret = -errno;
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"read update file error: %s", strerror(-ret));
+		return ret;
+	}
+
+	if (ret == 0) {
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"read update file eof");
+		return 0;
+	}
+
+	/* send chunk over mux */
+	n_bytes = ret;
+
+	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"sending chunk: id=%d size=%d", up->chunk_id, n_bytes);
+
+	ret = updater_mux_write_msg(up->mux, MUX_UPDATE_MSG_ID_CHUNK,
+			MUX_UPDATE_MSG_FMT_ENC_CHUNK, up->chunk_id,
+			up->chunk, n_bytes);
+	if (ret < 0)
+		return ret;
+
+	up->n_written += n_bytes;
+	return 0;
+}
+
+static void updater_mux_channel_recv(ARUPDATER_Manager_t *mngr,
+			struct pomp_buffer *buf)
+{
+	struct pomp_msg *msg = NULL;
+	ARUPDATER_Uploader_t *up = mngr->uploader;
+	float percent;
+	int ret, status;
+	unsigned int id;
+
+	/* Create pomp message from buffer */
+	msg = pomp_msg_new_with_buffer(buf);
+	if (msg == NULL)
+		return;
+
+	/* Decode message */
+	switch (pomp_msg_get_id(msg)) {
+	case MUX_UPDATE_MSG_ID_UPDATE_RESP:
+		/* decode status */
+		ret = pomp_msg_read(msg, MUX_UPDATE_MSG_FMT_DEC_UPDATE_RESP,
+				&status);
+
+		if (ret < 0) {
+			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"pomp_msg_read error: %s", strerror(-ret));
+			goto error;
+		}
+
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+				"update resp: status=%d", status);
+
+		if (status != 0) {
+			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"update refused by remote");
+			goto error;
+		}
+
+		/* update accepted: start sensing file */
+		up->n_written = 0;
+		up->chunk_id = 0;
+		lseek(up->fd, 0, SEEK_SET);
+
+		/* send 1st chunk */
+		ret = updater_mux_send_next_chunk(up);
+		if (ret < 0)
+			goto error;
+	break;
+
+	case MUX_UPDATE_MSG_ID_CHUNK_ACK:
+		/* decode chunk id */
+		ret = pomp_msg_read(msg, MUX_UPDATE_MSG_FMT_DEC_CHUNK_ACK, &id);
+		if (ret < 0) {
+			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"pomp_msg_read error: %s", strerror(-ret));
+			goto error;
+		}
+
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"chunk ack: id=%d", id);
+
+		if (id != up->chunk_id) {
+			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"chunk id mismatch %d != %d", id, up->chunk_id);
+			goto error;
+		}
+
+		/* notify progression */
+		percent = (double) (100.f * up->n_written) / (double)up->size;
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+				"progression: %f%%", percent);
+		update_mux_notify_progression(up, percent);
+
+		/* send next chunk */
+		if (up->n_written < up->size) {
+			up->chunk_id++;
+			ret = updater_mux_send_next_chunk(up);
+			if (ret < 0)
+				goto error;
+		}
+
+		/* last chunk sent and ack successfully received
+		 * wait for update status from remote */
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"image sent waiting for status");
+	break;
+
+	case MUX_UPDATE_MSG_ID_STATUS:
+
+		/* decode update status */
+		ret = pomp_msg_read(msg, MUX_UPDATE_MSG_FMT_DEC_STATUS, &status);
+		if (ret < 0) {
+			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"pomp_msg_read error: %s", strerror(-ret));
+			goto error;
+		}
+
+		ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"update status: status=%d", status);
+
+		/* check remote update status is ok */
+		if (status != 0) {
+			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+				"remote update status %d", status);
+			goto error;
+		}
+
+		/* notify upload succeed */
+		update_mux_notify_status(up, ARUPDATER_OK);
+	break;
+
+	default:
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"unsupported update mux msg %d", pomp_msg_get_id(msg));
+		goto error;
+	break;
+	}
+
+	pomp_msg_destroy(msg);
+	return;
+
+error:
+	pomp_msg_destroy(msg);
+	update_mux_notify_status(up, ARUPDATER_ERROR_UPLOADER);
+	return;
+}
+
+static void update_mux_channel_cb(struct mux_ctx *ctx, uint32_t chanid,
+		enum mux_channel_event event, struct pomp_buffer *buf,
+		void *userdata)
+{
+	ARUPDATER_Manager_t *mngr = userdata;
+	ARUPDATER_Uploader_t *up = mngr->uploader;
+
+	/* ignore message if upload has been canceled */
+	if (up->isCanceled)
+		return;
+
+	switch (event) {
+	case MUX_CHANNEL_RESET:
+		update_mux_notify_status(up, ARUPDATER_ERROR_UPLOADER);
+	break;
+	case MUX_CHANNEL_DATA:
+		updater_mux_channel_recv(mngr, buf);
+	break;
+	}
+}
+
+static char *md5_to_str(const uint8_t *md5, char *str)
+{
+	size_t i;
+	for (i = 0; i < ARSAL_MD5_LENGTH; i++)
+		snprintf(&str[i * 2], 3, "%02x", md5[i]);
+
+	return str;
+}
+#endif
+
+eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
+{
+#if defined BUILD_LIBMUX
+	int res;
+	ARUPDATER_PlfVersion v;
+	eARUPDATER_ERROR ret, status;
+	eARSAL_ERROR aret;
+	ARUPDATER_Uploader_t *up = manager->uploader;
+	uint16_t product;
+	struct stat statbuf;
+	char version[128];
+	uint8_t md5[ARSAL_MD5_LENGTH];
+	char md5_str[2*ARSAL_MD5_LENGTH + 1];
+	char dirpath[256];
+	char filepath[256];
+	char *filename = NULL;
+	struct pollfd fds[1];
+	int event;
+	float percent;
+
+	up->isRunning = 1;
+	up->fd = -1;
+	up->chunk = NULL;
+	memset(md5_str, 0, sizeof(md5_str));
+	memset(md5, 0, sizeof(md5));
+
+	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"starting update over mux");
+
+	/* first check we have a mux context */
+	if (!up->mux) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"Could not upload over usb: no mux instance");
+		status = ARUPDATER_ERROR_SYSTEM;
+		goto out;
+	}
+
+	/* get product id */
+	product = ARDISCOVERY_getProductID(up->product);
+
+	/* format directory path containing upload image files */
+	snprintf(dirpath, sizeof(dirpath), "%s%s%04x%s", up->rootFolder,
+			ARUPDATER_MANAGER_PLF_FOLDER, product,
+			ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+
+	/* get image file name */
+	ret = ARUPDATER_Utils_GetPlfInFolder(dirpath, &filename);
+	if (ret != ARUPDATER_OK) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"ARUPDATER_Utils_GetPlfInFolder error %d", ret);
+		status = ARUPDATER_ERROR_SYSTEM;
+		goto out;
+	}
+
+	/* format image file path */
+	snprintf(filepath, sizeof(filepath), "%s%s", dirpath, filename);
+
+	/* get update file md5 */
+	aret = ARSAL_MD5_Manager_Compute(up->md5Manager, filepath, md5,
+			sizeof(md5));
+	if (aret != ARSAL_OK) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"ARSAL_MD5_Manager_Compute error %d", aret);
+		status = ARUPDATER_ERROR_SYSTEM;
+		goto out;
+	}
+
+	/* get update file version */
+	ret = ARUPDATER_Utils_ReadPlfVersion(filepath, &v);
+	if (ret != ARUPDATER_OK) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"ARUPDATER_Utils_ReadPlfVersion error %d", aret);
+		status = ret;
+		goto out;
+	}
+
+	ARUPDATER_Utils_PlfVersionToString(&v, version, sizeof(version));
+
+	/* open image file */
+	up->fd = open(filepath, O_RDONLY);
+	if (up->fd < 0) {
+		ret = errno;
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"can't open mux update file '%s': error %s", filepath,
+			strerror(ret));
+		status = ARUPDATER_ERROR_PLF;
+		goto out;
+	}
+
+	/* get file size */
+	ret = fstat(up->fd, &statbuf);
+	if (ret < 0) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"can't stat mux update file '%s': error %s", filepath,
+			strerror(ret));
+		status = ARUPDATER_ERROR_SYSTEM;
+		goto out;
+	}
+
+	up->size = statbuf.st_size;
+
+	/* allocate chunk buffer */
+	up->chunk = malloc(ARUPDATER_UPLOADER_MUX_CHUNK_SIZE);
+	if (!up->chunk) {
+		status = ARUPDATER_ERROR_ALLOC;
+		goto out;
+	}
+
+	/* open mux update channel */
+	res = mux_channel_open(up->mux, MUX_UPDATE_CHANNEL_ID_UPDATE,
+			&update_mux_channel_cb, manager);
+	if (res < 0) {
+		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
+			"mux_channel_open: error %s", strerror(-res));
+		status = ARUPDATER_ERROR_UPLOADER;
+		goto out;
+	}
+
+	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG, "version:%s "
+		"md5:%s size:%d", version, md5_to_str(md5, md5_str), up->size);
+
+	/* send update request */
+	res = updater_mux_write_msg(up->mux, MUX_UPDATE_MSG_ID_UPDATE_REQ,
+			MUX_UPDATE_MSG_FMT_ENC_UPDATE_REQ, version, md5,
+			sizeof(md5), up->size);
+	if (res < 0) {
+		status = ARUPDATER_ERROR_UPLOADER;
+		goto out;
+	}
+
+	/* wait pipe events */
+	status = ARUPDATER_ERROR_UPLOADER;
+	while (1) {
+
+		/* poll pipe fds */
+		fds[0].fd = up->pipefds[0];
+		fds[0].events = POLLIN;
+		do {
+			res = poll(fds, 1, -1);
+		} while (res < 0 && errno == EINTR);
+
+		if (res < 0)
+			break;
+
+		/* check read pipe data available */
+		if (fds[0].revents & POLLIN) {
+			/* read pipe status */
+			do {
+				res = read(up->pipefds[0], &event,
+						sizeof(event));
+			} while (res < 0 && errno == EINTR);
+
+			if (res != sizeof(event))
+				continue;
+
+			/* positive event upload progression */
+			if (event > 0) {
+				percent = (float)event;
+				up->progressCallback(up->progressArg, percent);
+			} else {
+				/* negative event are status (or error) */
+				status = (eARUPDATER_ERROR) event;
+				break;
+			}
+		}
+	}
+
+out:
+	/* close all */
+	if (up->mux)
+		mux_channel_close(up->mux, MUX_UPDATE_CHANNEL_ID_UPDATE);
+
+	if (up->fd != -1) {
+		close(up->fd);
+		up->fd = -1;
+	}
+
+	free(filename);
+	free(up->chunk);
+	up->chunk = NULL;
+
+	/* notify status before return */
+	up->isRunning = 0;
+	up->completionCallback(up->completionArg, status);
+
+	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+			"update over mux completed status: %d", status);
+	return status;
+#else
+    return ARUPDATER_ERROR_SYSTEM;
+#endif
 }
 
 eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager)
@@ -859,7 +1363,11 @@ eARUPDATER_ERROR ARUPDATER_Uploader_CancelThread(ARUPDATER_Manager_t *manager)
     if (error == ARUPDATER_OK)
     {
         manager->uploader->isCanceled = 1;
-        
+
+#if defined BUILD_LIBMUX
+        update_mux_notify_status(manager->uploader, ARUPDATER_ERROR_UPLOADER);
+#endif
+
         ARSAL_Mutex_Lock(&manager->uploader->uploadLock);
         if (manager->uploader->isDownloadMd5ThreadRunning == 1)
         {

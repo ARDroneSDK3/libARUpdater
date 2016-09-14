@@ -16,6 +16,11 @@ LOCAL_LIBRARIES := \
 	libARDataTransfer \
 	json
 
+LOCAL_CONDITIONAL_LIBRARIES := \
+	OPTIONAL:libmux \
+	OPTIONAL:libpomp \
+	OPTIONAL:libplfng
+
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/Includes \
 	$(LOCAL_PATH)/Sources
@@ -37,6 +42,7 @@ LOCAL_INSTALL_HEADERS := \
 	Includes/libARUpdater/ARUPDATER_Downloader.h:usr/include/libARUpdater/ \
 	Includes/libARUpdater/ARUPDATER_Error.h:usr/include/libARUpdater/ \
 	Includes/libARUpdater/ARUPDATER_Manager.h:usr/include/libARUpdater/ \
-	Includes/libARUpdater/ARUPDATER_Uploader.h:usr/include/libARUpdater/
+	Includes/libARUpdater/ARUPDATER_Uploader.h:usr/include/libARUpdater/ \
+	Includes/libARUpdater/ARUPDATER_Utils.h:usr/include/libARUpdater/
 
 include $(BUILD_LIBRARY)

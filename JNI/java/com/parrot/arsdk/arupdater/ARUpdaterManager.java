@@ -46,8 +46,11 @@ public class ARUpdaterManager
 	private static native void nativeStaticInit();
     private native int nativeNew() throws ARUpdaterException;
     private native int nativeDelete(long manager);
-    private native boolean nativePlfVersionIsUpToDate(long manager, String rootFolder, int discoveryProduct, int version, int edition, int extension) throws ARUpdaterException;
+    private native boolean nativePlfVersionIsUpToDate(long manager, int discoveryProduct, String remoteVersion, String rootFolder) throws ARUpdaterException;
     private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
+    private static native String nativeReadPlfVersion(String pflPath);
+    private static native int nativeComparePlfVersions(String version1, String version2);
+    private static native int nativeExtractUnixFileFromPlf(String plfFileName, String outFolder, String unixFileName);
 
     private long nativeManager = 0;
     private String localVersion = null;
@@ -175,9 +178,9 @@ public class ARUpdaterManager
      * @return true is the plf is up to date, false otherwise
      * @throws ARUpdaterException throws ARUpdaterException if there is a bad parameter or if there is no plf file in the root folder
      */
-    public ARUpdaterUploadPlfVersionInfo isPlfVersionUpToDate(String rootFolder, ARDISCOVERY_PRODUCT_ENUM product, int version, int edition, int extension) throws ARUpdaterException
+    public ARUpdaterUploadPlfVersionInfo isPlfVersionUpToDate(ARDISCOVERY_PRODUCT_ENUM product, String remoteVersion, String rootFolder) throws ARUpdaterException
     {
-        boolean upToDate = nativePlfVersionIsUpToDate(nativeManager, rootFolder, product.getValue(), version, edition, extension);
+        boolean upToDate = nativePlfVersionIsUpToDate(nativeManager, product.getValue(), remoteVersion, rootFolder);
         ARUpdaterUploadPlfVersionInfo toReturn = new ARUpdaterUploadPlfVersionInfo(upToDate, this.localVersion);
         return toReturn;
     }
@@ -187,4 +190,31 @@ public class ARUpdaterManager
         return nativePlfVersionIsBlacklisted(product.getValue(), version, edition, extension);
     }
 
+    public static String readPlfVersion(String plfPath)
+    {
+        return nativeReadPlfVersion(plfPath);
+    }
+
+    /**
+    * Compare two plf versions
+    * @return It returns an integer less than 0 if version1 is lower than version2, 0 if versions are equal,
+    * greater than zero if version1 is greater than version2
+    */
+    public static int comparePlfVersions(String version1, String version2)
+    {
+        return nativeComparePlfVersions(version1, version2);
+    }
+
+    /**
+     * Extract a U_UNIFXILE regular file from a PLF file
+     *
+     * Example: a U_UNIXFILE section (regular file) with path "data/foo/config.txt" should be extracted
+     * by providing the last path component ("config.txt") as parameter unixFileName.
+     *
+     * @return ARUPDATER_OK if operation went well, the description of the error otherwise
+     */
+    public static ARUPDATER_ERROR_ENUM extractUnixFileFromPlf(String plfFileName, String outFolder, String unixFileName)
+    {
+        return ARUPDATER_ERROR_ENUM.getFromValue(nativeExtractUnixFileFromPlf(plfFileName, outFolder, unixFileName));
+    }
 }
