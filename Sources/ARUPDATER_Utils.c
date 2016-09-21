@@ -63,6 +63,10 @@ eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionFromString(const char *str, ARUPDATER
 	size_t i;
 	int ret;
 
+	if (!str || !v) {
+		return ARUPDATER_ERROR_BAD_PARAMETER;
+	}
+
 	memset(v, 0, sizeof(*v));
 
 	/* lower string */
