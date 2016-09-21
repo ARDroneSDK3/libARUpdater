@@ -1214,13 +1214,17 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             int i = 0;
             for (i = 0; (error == ARUPDATER_OK) && (i < ARDISCOVERY_PRODUCT_MAX); i++)
             {
+                json_object *productJsonObj = NULL;
                 uint16_t productId = ARDISCOVERY_getProductID(manager->downloader->blacklistedVersions[i]->product);
 
                 device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
                 snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
 
-                json_object *productJsonObj = json_object_object_get (jsonObj, device);
-                if ((productJsonObj != NULL) && !is_error(productJsonObj))
+                if (json_object_is_type(jsonObj, json_type_object))
+                {
+                    productJsonObj = json_object_object_get (jsonObj, device);
+                }
+                if ((productJsonObj != NULL) && !is_error(productJsonObj) && (json_object_is_type(productJsonObj, json_type_array)))
                 {
                     blacklistedRemoteList = json_object_get_array(productJsonObj);
                 }
