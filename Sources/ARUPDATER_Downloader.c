@@ -56,9 +56,9 @@
 #define ARUPDATER_DOWNLOADER_TAG   "ARUPDATER_Downloader"
 
 #define ARUPDATER_DOWNLOADER_SERVER_URL                    "download.parrot.com"
-#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "Drones/"
+#define ARUPDATER_DOWNLOADER_BEGIN_URL                     "/Drones/"
 #define ARUPDATER_DOWNLOADER_PHP_URL                       "/update.php"
-#define ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL        "/firmware_blacklist.php"
+#define ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL        "firmware_blacklist.php"
 #define ARUPDATER_DOWNLOADER_PARAM_MAX_LENGTH              255
 #define ARUPDATER_DOWNLOADER_VERSION_BUFFER_MAX_LENGHT     10
 #define ARUPDATER_DOWNLOADER_PRODUCT_PARAM                 "?product="
