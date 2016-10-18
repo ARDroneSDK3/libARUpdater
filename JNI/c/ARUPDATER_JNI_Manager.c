@@ -157,7 +157,7 @@ JNIEXPORT jlong JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeN
         ARUPDATER_JNI_Manager_ThrowARUpdaterException(env, result);
     }
 
-    return (long)nativeManager;
+    return (jlong)(intptr_t)nativeManager;
 }
 
 JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeDelete(JNIEnv *env, jobject jThis, jlong jManager)

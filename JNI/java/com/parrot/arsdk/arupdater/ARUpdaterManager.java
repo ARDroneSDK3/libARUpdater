@@ -44,7 +44,7 @@ public class ARUpdaterManager
 
 	/* Native Functions */
 	private static native void nativeStaticInit();
-    private native int nativeNew() throws ARUpdaterException;
+    private native long nativeNew() throws ARUpdaterException;
     private native int nativeDelete(long manager);
     private native boolean nativePlfVersionIsUpToDate(long manager, int discoveryProduct, String remoteVersion, String rootFolder) throws ARUpdaterException;
     private native boolean nativePlfVersionIsBlacklisted(int discoveryProduct, int version, int edition, int extension);
