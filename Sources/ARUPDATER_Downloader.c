@@ -501,8 +501,10 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             if (dir == NULL)
             {
                 ret = mkdir(plfFolder, S_IRWXU);
-                if (ret < 0 && errno != EEXIST)
-                    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "mkdir '%s' error: %s", strerror(errno));
+                if (ret < 0 && errno != EEXIST) {
+                    ret = errno;
+                    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "mkdir '%s' error: %s", plfFolder, strerror(ret));
+                }
             }
             else
             {
@@ -512,7 +514,11 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
             dir = fopen(deviceFolder, "r");
             if (dir == NULL)
             {
-                mkdir(deviceFolder, S_IRWXU);
+                ret = mkdir(deviceFolder, S_IRWXU);
+                if (ret < 0 && errno != EEXIST) {
+                    ret = errno;
+                    ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "mkdir '%s' error: %s", deviceFolder, strerror(ret));
+                }
             }
             else
             {
