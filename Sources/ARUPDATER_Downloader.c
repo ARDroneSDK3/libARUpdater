@@ -750,7 +750,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
         eARUTILS_ERROR utilsError = ARUTILS_OK;
         char *device = NULL;
         char *deviceFolder = NULL;
-        char *existingPlfFilePath = NULL;
         ARSAL_Sem_t dlSem;
 
         char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
@@ -905,11 +904,6 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 
                 if (error == ARUPDATER_OK)
                 {
-                    // if the existingPlfFilePath was set, a plf was in the folder, so delete it before renaming the file
-                    if (existingPlfFilePath != NULL)
-                    {
-                        unlink(existingPlfFilePath);
-                    }
                     if (rename(downloadedFilePath, downloadedFinalFilePath) != 0)
                     {
                         error = ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE;
@@ -938,11 +932,7 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 free(deviceFolder);
                 deviceFolder = NULL;
             }
-            if (existingPlfFilePath != NULL)
-            {
-                free(existingPlfFilePath);
-                existingPlfFilePath = NULL;
-            }
+
             if (device != NULL)
             {
                 free(device);
