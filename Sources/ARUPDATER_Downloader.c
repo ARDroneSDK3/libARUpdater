@@ -712,282 +712,171 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
     int resultSys = -1;
+    int nbDownloadsToDo = 0;
+    int productIndex = 0;
+    eARUTILS_ERROR utilsError = ARUTILS_OK;
+    ARSAL_Sem_t dlSem;
+    eARDISCOVERY_PRODUCT product;
+    uint16_t productId = 0;
+    ARUPDATER_DownloadInformation_t *downloadInfo = NULL;
+    const char *downloadUrl = NULL;
+    char *remoteMD5 = NULL;
+    char *remoteVersion = NULL;
+    char *downloadEndUrl = NULL;
+    char downloadServer[512];
+    char downloadedFinalFilePath[512];
+    char *downloadedFileName = NULL;
+    char deviceFolder[512];
+    char downloadedFilePath[512];
+    const char *urlWithoutHttpHeader = NULL;
+    const char delimiter = '/';
+    int serverLength = 0;
+    eARSAL_ERROR arsalError;
 
-    ARUPDATER_Manager_t *manager = NULL;
-    if (managerArg != NULL)
-    {
-        manager = (ARUPDATER_Manager_t*)managerArg;
-    }
-    else
-    {
+    ARUPDATER_Manager_t *manager = (ARUPDATER_Manager_t*)managerArg;
+    if ((manager == NULL) ||
+        (manager->downloader == NULL))
         return NULL;
-    }
 
-    if ((manager != NULL) && (manager->downloader != NULL))
-    {
-        manager->downloader->isRunning = 1;
-    }
-    else
-    {
-        return NULL;
-    }
+    manager->downloader->isRunning = 1;
 
-    int shouldDownload = 0;
+    // if the check has already been done
+    if (manager->downloader->updateHasBeenChecked)
+        goto end;
 
-    if (error == ARUPDATER_OK)
-    {
-        // if the check has not already been done, do it
-        if (manager->downloader->updateHasBeenChecked == 0)
+    nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
+    if (nbDownloadsToDo <= 0)
+        goto end;
+
+    while ((productIndex < manager->downloader->productCount) && (!manager->downloader->isCanceled)) {
+        /* for each product, check if update is needed */
+        product = manager->downloader->productList[productIndex];
+        productId = ARDISCOVERY_getProductID(product);
+
+        downloadInfo = manager->downloader->downloadInfos[product];
+        if (error == ARUPDATER_OK && downloadInfo != NULL)
         {
-            int nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
-            if (nbDownloadsToDo > 0)
-            {
-                shouldDownload = 1;
-            }
-        }
-        else
-        {
-            shouldDownload = 1;
-        }
+            downloadUrl = downloadInfo->downloadUrl;
+            remoteMD5 = downloadInfo->md5Expected;
+            remoteVersion = downloadInfo->plfVersion;
 
-    }
+            if (manager->downloader->willDownloadPlfCallback != NULL)
+                manager->downloader->willDownloadPlfCallback(manager->downloader->completionArg, product, remoteVersion);
 
+            downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
+            if(downloadedFileName == NULL || strlen(downloadedFileName) == 0)
+                break;
 
-    if ((ARUPDATER_OK == error) && shouldDownload != 0)
-    {
-        eARUTILS_ERROR utilsError = ARUTILS_OK;
-        char *device = NULL;
-        char *deviceFolder = NULL;
-        ARSAL_Sem_t dlSem;
+            downloadedFileName = &downloadedFileName[1];
 
-        char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
-        if (!plfFolder) {
-            error = ARUPDATER_ERROR_ALLOC;
-        } else {
-            strcpy(plfFolder, manager->downloader->rootFolder);
-            strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
-        }
+            snprintf(deviceFolder, sizeof(deviceFolder), "%s%s%04x%s",
+                    manager->downloader->rootFolder,
+                    ARUPDATER_MANAGER_PLF_FOLDER,
+                    productId,
+                    ARUPDATER_MANAGER_FOLDER_SEPARATOR);
 
-        int productIndex = 0;
-        while ((error == ARUPDATER_OK) && (productIndex < manager->downloader->productCount) && (manager->downloader->isCanceled == 0))
-        {
-            // for each product, check if update is needed
-            eARDISCOVERY_PRODUCT product = manager->downloader->productList[productIndex];
-            uint16_t productId = ARDISCOVERY_getProductID(product);
+            snprintf(downloadedFilePath, sizeof(downloadedFilePath), "%s%s%s%s",
+                    deviceFolder,
+                    ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX,
+                    downloadedFileName,
+                    ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
 
-            device = malloc(ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE);
-            if (!device) {
-                error = ARUPDATER_ERROR_ALLOC;
+            snprintf(downloadedFinalFilePath, sizeof(downloadedFinalFilePath), "%s%s",
+                    deviceFolder,
+                    downloadedFileName);
+
+            /* explode the download url into server and endUrl */
+            if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0) {
+                error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
                 break;
             }
-            snprintf(device, ARUPDATER_MANAGER_DEVICE_STRING_MAX_SIZE, "%04x", productId);
 
-            deviceFolder = malloc(strlen(plfFolder) + strlen(device) + strlen(ARUPDATER_MANAGER_FOLDER_SEPARATOR) + 1);
-            if (!deviceFolder) {
-                error = ARUPDATER_ERROR_ALLOC;
-            } else {
-                strcpy(deviceFolder, plfFolder);
-                strcat(deviceFolder, device);
-                strcat(deviceFolder, ARUPDATER_MANAGER_FOLDER_SEPARATOR);
+            /* construct the url */
+            urlWithoutHttpHeader = downloadUrl + strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER);
+
+            downloadEndUrl = strchr(urlWithoutHttpHeader, delimiter);
+            serverLength = strlen(urlWithoutHttpHeader) - strlen(downloadEndUrl);
+            snprintf(downloadServer, serverLength + 1, "%s", urlWithoutHttpHeader);
+
+            ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
+            /* init the request semaphore */
+            resultSys = ARSAL_Sem_Init(&dlSem, 0, 0);
+            if (resultSys != 0) {
+                error = ARUPDATER_ERROR_SYSTEM;
+                ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
+                break;
             }
 
-            ARUPDATER_DownloadInformation_t *downloadInfo = manager->downloader->downloadInfos[product];
-            if (error == ARUPDATER_OK && downloadInfo != NULL)
-            {
-                const char *const downloadUrl = downloadInfo->downloadUrl;
-                char *remoteMD5 = downloadInfo->md5Expected;
-                char *remoteVersion = downloadInfo->plfVersion;
-
-                if (manager->downloader->willDownloadPlfCallback != NULL)
-                {
-                    manager->downloader->willDownloadPlfCallback(manager->downloader->completionArg, product, remoteVersion);
-                }
-
-                char *downloadEndUrl = NULL;
-                char *downloadServer = NULL;
-                char *downloadedFinalFilePath = NULL;
-                char *downloadedFileName = strrchr(downloadUrl, ARUPDATER_MANAGER_FOLDER_SEPARATOR[0]);
-                if(downloadedFileName != NULL && strlen(downloadedFileName) > 0)
-                {
-                    downloadedFileName = &downloadedFileName[1];
-                }
-
-                char *downloadedFilePath = malloc(strlen(deviceFolder) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX) + strlen(downloadedFileName) + strlen(ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX) + 1);
-                if (!downloadedFilePath) {
-                    error = ARUPDATER_ERROR_ALLOC;
-                } else {
-                    strcpy(downloadedFilePath, deviceFolder);
-                    strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX);
-                    strcat(downloadedFilePath, downloadedFileName);
-                    strcat(downloadedFilePath, ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX);
-
-                    downloadedFinalFilePath = malloc(strlen(deviceFolder) + strlen(downloadedFileName) + 1);
-                    if (!downloadedFinalFilePath) {
-                        error = ARUPDATER_ERROR_ALLOC;
-                    } else {
-                        strcpy(downloadedFinalFilePath, deviceFolder);
-                        strcat(downloadedFinalFilePath, downloadedFileName);
-                    }
-
-                    // explode the download url into server and endUrl
-                    if (strncmp(downloadUrl, ARUPDATER_DOWNLOADER_HTTP_HEADER, strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER)) != 0)
-                    {
-                        error = ARUPDATER_ERROR_DOWNLOADER_PHP_ERROR;
-                    }
-                }
-
-                // construct the url
-                if (error == ARUPDATER_OK)
-                {
-                    const char *const urlWithoutHttpHeader = downloadUrl + strlen(ARUPDATER_DOWNLOADER_HTTP_HEADER);
-                    const char delimiter = '/';
-
-                    downloadEndUrl = strchr(urlWithoutHttpHeader, delimiter);
-                    int serverLength = strlen(urlWithoutHttpHeader) - strlen(downloadEndUrl);
-                    downloadServer = malloc(serverLength + 1);
-                    if (!downloadServer) {
-                        error = ARUPDATER_ERROR_ALLOC;
-                    } else {
-                        strncpy(downloadServer, urlWithoutHttpHeader, serverLength);
-                        downloadServer[serverLength] = '\0';
-                    }
-                }
-
-                ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
-                // init the request semaphore
-                if (error == ARUPDATER_OK)
-                {
-                    resultSys = ARSAL_Sem_Init(&dlSem, 0, 0);
-                    if (resultSys != 0)
-                    {
-                        error = ARUPDATER_ERROR_SYSTEM;
-                    }
-                }
-
-                if (error == ARUPDATER_OK)
-                {
-                    manager->downloader->downloadConnection = ARUTILS_Http_Connection_New(&dlSem, downloadServer, 80, HTTPS_PROTOCOL_FALSE, NULL, NULL, &utilsError);
-                    if (utilsError != ARUTILS_OK)
-                    {
-                        ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
-                        manager->downloader->downloadConnection = NULL;
-                        error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
-                    }
-                }
+            manager->downloader->downloadConnection = ARUTILS_Http_Connection_New(&dlSem, downloadServer, 80, HTTPS_PROTOCOL_FALSE, NULL, NULL, &utilsError);
+            if (utilsError != ARUTILS_OK) {
+                ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
+                manager->downloader->downloadConnection = NULL;
+                error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
+                ARSAL_Sem_Destroy(&dlSem);
                 ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
+                break;
+            }
 
-                // download the file
-                if ((error == ARUPDATER_OK) && (manager->downloader->isCanceled == 0))
-                {
-                    utilsError = ARUTILS_Http_Get(manager->downloader->downloadConnection, downloadEndUrl, downloadedFilePath, manager->downloader->plfDownloadProgressCallback, manager->downloader->progressArg);
-                    if (utilsError != ARUTILS_OK)
-                    {
-                        error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
-                    }
-                }
+            ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
-                ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
-                if (manager->downloader->downloadConnection != NULL)
-                {
-                    ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
-                    manager->downloader->downloadConnection = NULL;
-                }
-
-                if (resultSys == 0)
+            /* download the file */
+            if (!manager->downloader->isCanceled) {
+                utilsError = ARUTILS_Http_Get(manager->downloader->downloadConnection, downloadEndUrl, downloadedFilePath, manager->downloader->plfDownloadProgressCallback, manager->downloader->progressArg);
+                if (utilsError != ARUTILS_OK) {
+                    error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
                     ARSAL_Sem_Destroy(&dlSem);
+                    break;
+                }
+            }
 
+            ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
+            if (manager->downloader->downloadConnection != NULL) {
+                ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
+                manager->downloader->downloadConnection = NULL;
                 ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
-
-                // check md5 match
-                if (error == ARUPDATER_OK)
-                {
-                    eARSAL_ERROR arsalError = ARSAL_MD5_Manager_Check(manager->downloader->md5Manager, downloadedFilePath, remoteMD5);
-                    if(ARSAL_OK != arsalError)
-                    {
-                        // delete the downloaded file if md5 don't match
-                        unlink(downloadedFilePath);
-                        error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
-                    }
-                }
-
-                if (error == ARUPDATER_OK)
-                {
-                    if (rename(downloadedFilePath, downloadedFinalFilePath) != 0)
-                    {
-                        error = ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE;
-                    }
-                }
-
-                if (downloadServer != NULL)
-                {
-                    free(downloadServer);
-                    downloadServer = NULL;
-                }
-                if (downloadedFilePath != NULL)
-                {
-                    free(downloadedFilePath);
-                    downloadedFilePath = NULL;
-                }
-                if (downloadedFinalFilePath != NULL)
-                {
-                    free(downloadedFinalFilePath);
-                    downloadedFinalFilePath = NULL;
-                }
+                ARSAL_Sem_Destroy(&dlSem);
+                break;
             }
 
-            if (deviceFolder != NULL)
-            {
-                free(deviceFolder);
-                deviceFolder = NULL;
+            ARSAL_Sem_Destroy(&dlSem);
+            ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
+
+            /* check md5 match */
+            arsalError = ARSAL_MD5_Manager_Check(manager->downloader->md5Manager, downloadedFilePath, remoteMD5);
+            if (ARSAL_OK != arsalError) {
+                /* delete the downloaded file if md5 don't match */
+                unlink(downloadedFilePath);
+                error = ARUPDATER_ERROR_DOWNLOADER_MD5_DONT_MATCH;
+                break;
             }
 
-            if (device != NULL)
-            {
-                free(device);
-                device = NULL;
+            if (rename(downloadedFilePath, downloadedFinalFilePath) != 0) {
+                error = ARUPDATER_ERROR_DOWNLOADER_RENAME_FILE;
+                break;
             }
-
-            productIndex++;
         }
 
-        if (plfFolder != NULL)
-        {
-            free(plfFolder);
-            plfFolder = NULL;
-        }
+        productIndex++;
     }
 
-    // delete the content of the downloadInfos
-    if (ARUPDATER_OK == error)
-    {
-        manager->downloader->updateHasBeenChecked = 0;
-        int product = 0;
-        for (product = 0; product < ARDISCOVERY_PRODUCT_MAX; product++)
-        {
-            ARUPDATER_DownloadInformation_t *downloadInfo = manager->downloader->downloadInfos[product];
-            if (downloadInfo != NULL)
-            {
-                ARUPDATER_DownloadInformation_Delete(&downloadInfo);
-                manager->downloader->downloadInfos[product] = NULL;
-            }
+end:
+    /* delete the content of the downloadInfos */
+    manager->downloader->updateHasBeenChecked = 0;
+    for (productIndex = 0; productIndex < ARDISCOVERY_PRODUCT_MAX; productIndex++) {
+        downloadInfo = manager->downloader->downloadInfos[productIndex];
+        if (downloadInfo != NULL) {
+            ARUPDATER_DownloadInformation_Delete(&downloadInfo);
+            manager->downloader->downloadInfos[productIndex] = NULL;
         }
     }
-
 
     if (error != ARUPDATER_OK)
-    {
         ARSAL_PRINT (ARSAL_PRINT_ERROR, ARUPDATER_DOWNLOADER_TAG, "error: %s", ARUPDATER_Error_ToString (error));
-    }
 
-    if ((manager != NULL) && (manager->downloader != NULL))
-    {
-        manager->downloader->isRunning = 0;
-    }
+    manager->downloader->isRunning = 0;
 
-    if (manager && manager->downloader && manager->downloader->plfDownloadCompletionCallback)
-    {
+    if (manager->downloader->plfDownloadCompletionCallback)
         manager->downloader->plfDownloadCompletionCallback(manager->downloader->completionArg, error);
-    }
 
     return (void*)error;
 }
