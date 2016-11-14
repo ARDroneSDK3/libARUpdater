@@ -420,35 +420,36 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
     ARSAL_Sem_t requestSem;
     char *platform = NULL;
     int ret;
+    char *plfFolder = NULL;
+    int productIndex = 0;
 
     if (manager == NULL)
     {
         error = ARUPDATER_ERROR_BAD_PARAMETER;
+        goto end;
     }
     else if (manager->downloader == NULL)
     {
         error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+        goto end;
     }
 
-    if (ARUPDATER_OK == error)
-    {
-        manager->downloader->updateHasBeenChecked = 1;
-    }
+    manager->downloader->updateHasBeenChecked = 1;
 
-    char *plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
+    plfFolder = malloc(strlen(manager->downloader->rootFolder) + strlen(ARUPDATER_MANAGER_PLF_FOLDER) + 1);
+    if (plfFolder == NULL) {
+        error = ARUPDATER_ERROR_ALLOC;
+        goto end;
+    }
     strcpy(plfFolder, manager->downloader->rootFolder);
     strcat(plfFolder, ARUPDATER_MANAGER_PLF_FOLDER);
 
-    if (error == ARUPDATER_OK)
-    {
-        platform = ARUPDATER_Downloader_GetPlatformName(manager->downloader->appPlatform);
-        if (platform == NULL)
-        {
-            error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
-        }
+    platform = ARUPDATER_Downloader_GetPlatformName(manager->downloader->appPlatform);
+    if (platform == NULL) {
+        error = ARUPDATER_ERROR_DOWNLOADER_PLATFORM_ERROR;
+        goto end;
     }
 
-    int productIndex = 0;
     while ((error == ARUPDATER_OK) && (productIndex < manager->downloader->productCount) && (manager->downloader->isCanceled == 0))
     {
         // for each product, check if update is needed
@@ -656,6 +657,7 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         productIndex++;
     }
 
+end:
     free(plfFolder);
     plfFolder = NULL;
 
