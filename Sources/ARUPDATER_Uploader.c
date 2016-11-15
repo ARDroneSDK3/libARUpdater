@@ -741,7 +741,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 	ret = ARUPDATER_Utils_ReadPlfVersion(filepath, &v);
 	if (ret != ARUPDATER_OK) {
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
-			"ARUPDATER_Utils_ReadPlfVersion error %d", aret);
+			"ARUPDATER_Utils_ReadPlfVersion error %d", ret);
 		status = ret;
 		goto out;
 	}
@@ -751,20 +751,21 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 	/* open image file */
 	up->fd = open(filepath, O_RDONLY);
 	if (up->fd < 0) {
-		ret = errno;
+		res = errno;
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
 			"can't open mux update file '%s': error %s", filepath,
-			strerror(ret));
+			strerror(res));
 		status = ARUPDATER_ERROR_PLF;
 		goto out;
 	}
 
 	/* get file size */
-	ret = fstat(up->fd, &statbuf);
-	if (ret < 0) {
+	res = fstat(up->fd, &statbuf);
+	if (res < 0) {
+		res = errno;
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
 			"can't stat mux update file '%s': error %s", filepath,
-			strerror(ret));
+			strerror(res));
 		status = ARUPDATER_ERROR_SYSTEM;
 		goto out;
 	}
@@ -1414,4 +1415,3 @@ int ARUPDATER_Uploader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_
     
     return isRunning;
 }
-
