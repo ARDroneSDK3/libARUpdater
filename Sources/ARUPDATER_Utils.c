@@ -305,7 +305,8 @@ eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName,
 
     fp = fopen(plfFileName, "rb");
     if (fp == NULL) {
-	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "fopen(%s): %s", plfFileName, strerror(errno));
+	ret = errno;
+	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "fopen(%s): %s", plfFileName, strerror(ret));
 	ret = ARUPDATER_ERROR;
 	goto finish;
     }
