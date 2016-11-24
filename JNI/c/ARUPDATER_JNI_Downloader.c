@@ -706,7 +706,7 @@ void ARUPDATER_JNI_Downloader_CompletionCallback(void* arg, eARUPDATER_ERROR nat
                     if (jError == NULL)
                     {
                         error = JNI_FAILED;
-                        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %x", error, jError);
+                        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %p", error, jError);
                     }
                 }
 
@@ -782,7 +782,7 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUpl
                 if (jError == NULL)
                 {
                     error = JNI_FAILED;
-                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %x", error, jError);
+                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %p", error, jError);
                 }
             }
 
@@ -869,7 +869,7 @@ void ARUPDATER_JNI_Downloader_FreeDownloaderCallbacks(JNIEnv *env, ARUPDATER_JNI
 {
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%x", callbacksParam ? *callbacksParam : 0);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", callbacksParam ? *callbacksParam : 0);
 
     if (callbacksParam != NULL)
     {

@@ -360,7 +360,7 @@ void ARUPDATER_JNI_Uploader_CompletionCallback(void* arg, eARUPDATER_ERROR nativ
                     if (jError == NULL)
                     {
                         error = JNI_FAILED;
-                        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "error %d, %x", error, jError);
+                        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "error %d, %p", error, jError);
                     }
                 }
 
@@ -433,7 +433,7 @@ void ARUPDATER_JNI_Uploader_FreeUploaderCallbacks(JNIEnv *env, ARUPDATER_JNI_Upl
 {
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%x", callbacksParam ? *callbacksParam : 0);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%p", callbacksParam ? *callbacksParam : 0);
 
     if (callbacksParam != NULL)
     {
