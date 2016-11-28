@@ -127,7 +127,7 @@ JNIEXPORT jlong JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeN
     eARUPDATER_ERROR result = ARUPDATER_OK;
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
     nativeManager = ARUPDATER_Manager_New(&result);
 
@@ -164,7 +164,7 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterManager_nativeDe
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*) (intptr_t) jManager;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
     ARUPDATER_Manager_Delete (&nativeManager);
 
@@ -338,7 +338,7 @@ int ARUPDATER_JNI_Manager_NewARUpdaterExceptionJNI(JNIEnv *env)
 
     if (classUPDATER_Exception == NULL)
     {
-        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
         if (env == NULL)
         {
@@ -384,7 +384,7 @@ int ARUPDATER_JNI_Manager_NewARUpdaterExceptionJNI(JNIEnv *env)
 
 void ARUPDATER_JNI_Manager_FreeARUpdaterExceptionJNI(JNIEnv *env)
 {
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
     if (env != NULL)
     {
@@ -461,7 +461,7 @@ int ARUPDATER_JNI_Manager_NewERROR_ENUM_JNI(JNIEnv *env)
 
     if (classUPDATER_ERROR_ENUM == NULL)
     {
-        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
         if (env == NULL)
         {
@@ -507,7 +507,7 @@ int ARUPDATER_JNI_Manager_NewERROR_ENUM_JNI(JNIEnv *env)
 
 void ARUPDATER_JNI_Manager_FreeERROR_ENUM_JNI(JNIEnv *env)
 {
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
     if (env != NULL)
     {
@@ -561,7 +561,7 @@ int ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env)
 
     if (classDTERROR_ENUM == NULL)
     {
-        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
         if (env == NULL)
         {
@@ -607,7 +607,7 @@ int ARUPDATER_JNI_Manager_NewDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env)
 
 void ARUPDATER_JNI_Manager_FreeDATATRANSFER_ERROR_ENUM_JNI(JNIEnv *env)
 {
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
     if (env != NULL)
     {
@@ -660,7 +660,7 @@ int ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env)
 
     if (classDISCOVERY_PRODUCT_ENUM == NULL)
     {
-        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
         if (env == NULL)
         {
@@ -706,7 +706,7 @@ int ARUPDATER_JNI_Manager_NewDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env)
 
 void ARUPDATER_JNI_Manager_FreeDISCOVERY_PRODUCT_ENUM_JNI(JNIEnv *env)
 {
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_MANAGER_TAG, "%s", "");
 
     if (env != NULL)
     {

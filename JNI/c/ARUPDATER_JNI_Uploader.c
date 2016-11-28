@@ -66,7 +66,7 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nat
     jboolean jret = JNI_FALSE;
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
@@ -162,7 +162,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeD
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
 
     result = ARUPDATER_Uploader_Delete(nativeManager);
 
@@ -175,7 +175,7 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeT
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
 
     ARUPDATER_Uploader_ThreadRun(nativeManager);
 
@@ -187,7 +187,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeC
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
 
     result = ARUPDATER_Uploader_CancelThread(nativeManager);
 
@@ -207,7 +207,7 @@ int ARUPDATER_JNI_Uploader_NewListenersJNI(JNIEnv *env)
     jclass classUploaderCompletionListener = NULL;
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
@@ -406,7 +406,7 @@ void ARUPDATER_JNI_Uploader_FreeListenersJNI(JNIEnv *env)
 {
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
