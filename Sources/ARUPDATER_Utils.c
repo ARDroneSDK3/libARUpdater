@@ -63,6 +63,10 @@ eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionFromString(const char *str, ARUPDATER
 	size_t i;
 	int ret;
 
+	if (!str || !v) {
+		return ARUPDATER_ERROR_BAD_PARAMETER;
+	}
+
 	memset(v, 0, sizeof(*v));
 
 	/* lower string */
@@ -301,7 +305,8 @@ eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName,
 
     fp = fopen(plfFileName, "rb");
     if (fp == NULL) {
-	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "fopen(%s): %s", plfFileName, strerror(errno));
+	ret = errno;
+	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "fopen(%s): %s", plfFileName, strerror(ret));
 	ret = ARUPDATER_ERROR;
 	goto finish;
     }

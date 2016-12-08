@@ -72,7 +72,7 @@ JNIEXPORT jboolean JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_n
     jboolean jret = JNI_FALSE;
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
@@ -191,7 +191,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     result = ARUPDATER_Downloader_Delete(nativeManager);
 
@@ -204,7 +204,7 @@ JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     ARUPDATER_Downloader_ThreadRun(nativeManager);
 
@@ -216,7 +216,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     result = ARUPDATER_Downloader_CancelThread(nativeManager);
 
@@ -230,7 +230,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     jint *productIntArray = NULL;
     jsize productArrayCount = 0;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     if (jProductArray != NULL)
     {
@@ -266,7 +266,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
     eARUPDATER_ERROR result = ARUPDATER_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
     result = (eARUPDATER_ERROR)ARUPDATER_Downloader_CheckUpdatesAsync(nativeManager);
     return result;
 }
@@ -283,7 +283,7 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     eARUPDATER_ERROR result = ARUPDATER_OK;
     int nbPlfToBeUploaded = 0;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     nbPlfToBeUploaded = ARUPDATER_Downloader_CheckUpdatesSync(nativeManager, &result);
     if (result != ARUPDATER_OK)
@@ -430,7 +430,7 @@ int ARUPDATER_JNI_Downloader_NewListenersJNI(JNIEnv *env)
     jclass classDownloaderShouldDownloadListener = NULL;
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
@@ -706,7 +706,7 @@ void ARUPDATER_JNI_Downloader_CompletionCallback(void* arg, eARUPDATER_ERROR nat
                     if (jError == NULL)
                     {
                         error = JNI_FAILED;
-                        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %x", error, jError);
+                        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %p", error, jError);
                     }
                 }
 
@@ -782,7 +782,7 @@ void ARUPDATER_JNI_Downloader_ShouldDownloadCallback(void* arg, int nbPlfToBeUpl
                 if (jError == NULL)
                 {
                     error = JNI_FAILED;
-                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %x", error, jError);
+                    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "error %d, %p", error, jError);
                 }
             }
 
@@ -821,7 +821,7 @@ void ARUPDATER_JNI_Downloader_FreeListenersJNI(JNIEnv *env)
 {
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
@@ -841,7 +841,7 @@ void ARUPDATER_JNI_Downloader_FreeDownloadInfoJNI(JNIEnv *env)
 {
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
     if (env == NULL)
     {
@@ -869,7 +869,7 @@ void ARUPDATER_JNI_Downloader_FreeDownloaderCallbacks(JNIEnv *env, ARUPDATER_JNI
 {
     int error = JNI_OK;
 
-    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%x", callbacksParam ? *callbacksParam : 0);
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%p", callbacksParam ? *callbacksParam : 0);
 
     if (callbacksParam != NULL)
     {
@@ -938,7 +938,7 @@ int ARUPDATER_JNI_Downloader_NewDownloadInfoJNI(JNIEnv *env)
 
     if (classDownloadInfo == NULL)
     {
-        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "");
+        ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
 
         if (env == NULL)
         {

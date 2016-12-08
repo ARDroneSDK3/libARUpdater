@@ -192,7 +192,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         if (ret < 0) {
              ret = -errno;
              ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
-                  "pipe error %d", strerror(-ret));
+                  "pipe error %s", strerror(-ret));
              err = ARUPDATER_ERROR_SYSTEM;
         }
 
@@ -502,7 +502,7 @@ static int updater_mux_send_next_chunk(ARUPDATER_Uploader_t *up)
 	n_bytes = ret;
 
 	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
-			"sending chunk: id=%d size=%d", up->chunk_id, n_bytes);
+			"sending chunk: id=%zd size=%d", up->chunk_id, n_bytes);
 
 	ret = updater_mux_write_msg(up->mux, MUX_UPDATE_MSG_ID_CHUNK,
 			MUX_UPDATE_MSG_FMT_ENC_CHUNK, up->chunk_id,
@@ -575,7 +575,7 @@ static void updater_mux_channel_recv(ARUPDATER_Manager_t *mngr,
 
 		if (id != up->chunk_id) {
 			ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
-				"chunk id mismatch %d != %d", id, up->chunk_id);
+				"chunk id mismatch %d != %zd", id, up->chunk_id);
 			goto error;
 		}
 
@@ -741,7 +741,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 	ret = ARUPDATER_Utils_ReadPlfVersion(filepath, &v);
 	if (ret != ARUPDATER_OK) {
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
-			"ARUPDATER_Utils_ReadPlfVersion error %d", aret);
+			"ARUPDATER_Utils_ReadPlfVersion error %d", ret);
 		status = ret;
 		goto out;
 	}
@@ -751,20 +751,21 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 	/* open image file */
 	up->fd = open(filepath, O_RDONLY);
 	if (up->fd < 0) {
-		ret = errno;
+		res = errno;
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
 			"can't open mux update file '%s': error %s", filepath,
-			strerror(ret));
+			strerror(res));
 		status = ARUPDATER_ERROR_PLF;
 		goto out;
 	}
 
 	/* get file size */
-	ret = fstat(up->fd, &statbuf);
-	if (ret < 0) {
+	res = fstat(up->fd, &statbuf);
+	if (res < 0) {
+		res = errno;
 		ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UPLOADER_TAG,
 			"can't stat mux update file '%s': error %s", filepath,
-			strerror(ret));
+			strerror(res));
 		status = ARUPDATER_ERROR_SYSTEM;
 		goto out;
 	}
@@ -789,7 +790,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunMux(ARUPDATER_Manager_t *manager)
 	}
 
 	ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG, "version:%s "
-		"md5:%s size:%d", version, md5_to_str(md5, md5_str), up->size);
+		"md5:%s size:%zd", version, md5_to_str(md5, md5_str), up->size);
 
 	/* send update request */
 	res = updater_mux_write_msg(up->mux, MUX_UPDATE_MSG_ID_UPDATE_REQ,
@@ -1414,4 +1415,3 @@ int ARUPDATER_Uploader_ThreadIsRunning(ARUPDATER_Manager_t* manager, eARUPDATER_
     
     return isRunning;
 }
-
