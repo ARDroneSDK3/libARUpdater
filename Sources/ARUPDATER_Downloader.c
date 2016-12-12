@@ -606,22 +606,23 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
-            char *result;
-            result = strtok(data, "|");
+            char *result = NULL;
+            char *svg = NULL;
+            result = strtok_r(data, "|", &svg);
 
             // if this plf is not up to date
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
             {
                 nbUpdatesToDownload++;
-                char *downloadUrl = strtok(NULL, "|");
-                char *remoteMD5 = strtok(NULL, "|");
-                char *remoteSizeStr = strtok(NULL, "|");
+                char *downloadUrl = strtok_r(NULL, "|", &svg);
+                char *remoteMD5 = strtok_r(NULL, "|", &svg);
+                char *remoteSizeStr = strtok_r(NULL, "|", &svg);
                 int remoteSize = 0;
                 if (remoteSizeStr != NULL)
                 {
                     remoteSize = atoi(remoteSizeStr);
                 }
-                char *remoteVersion = strtok(NULL, "|");
+                char *remoteVersion = strtok_r(NULL, "\n", &svg);
 
                 manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
             }
@@ -1069,13 +1070,14 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
-            char *result;
-            result = strtok(data, "|");
+            char *result = NULL;
+            char *svg = NULL;
+            result = strtok_r(data, "|", &svg);
 
             // if the server has no error
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
-                char *jsonAsStr = strtok(NULL, "|");
+                char *jsonAsStr = strtok_r(NULL, "|", &svg);
                 if (jsonAsStr != NULL)
                 {
                     jsonObj = json_tokener_parse(jsonAsStr);
@@ -1307,22 +1309,23 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
-            char *result;
-            result = strtok(data, "|");
+            char *result = NULL;
+            char *svg = NULL;
+            result = strtok_r(data, "|", &svg);
 
             // if this plf is not up to date
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
             {
                 nbUpdatesToDownload++;
-                char *downloadUrl = strtok(NULL, "|");
-                char *remoteMD5 = strtok(NULL, "|");
-                char *remoteSizeStr = strtok(NULL, "|");
+                char *downloadUrl = strtok_r(NULL, "|", &svg);
+                char *remoteMD5 = strtok_r(NULL, "|", &svg);
+                char *remoteSizeStr = strtok_r(NULL, "|", &svg);
                 int remoteSize = 0;
                 if (remoteSizeStr != NULL)
                 {
                     remoteSize = atoi(remoteSizeStr);
                 }
-                char *remoteVersion = strtok(NULL, "|");
+                char *remoteVersion = strtok_r(NULL, "\n", &svg);
                 manager->downloader->downloadInfos[productIndex] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
             }
             else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
