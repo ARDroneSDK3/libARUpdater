@@ -741,13 +741,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 
     manager->downloader->isRunning = 1;
 
-    // if the check has already been done
-    if (manager->downloader->updateHasBeenChecked)
-        goto end;
-
-    nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
-    if (nbDownloadsToDo <= 0)
-        goto end;
+    // if the check has not already been done, do it
+    if (!manager->downloader->updateHasBeenChecked) {
+        nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
+        if (nbDownloadsToDo <= 0)
+            goto end;
+    }
 
     while ((productIndex < manager->downloader->productCount) && (!manager->downloader->isCanceled)) {
         /* for each product, check if update is needed */
@@ -825,20 +824,25 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 utilsError = ARUTILS_Http_Get(manager->downloader->downloadConnection, downloadEndUrl, downloadedFilePath, manager->downloader->plfDownloadProgressCallback, manager->downloader->progressArg);
                 if (utilsError != ARUTILS_OK) {
                     error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
-                    ARSAL_Sem_Destroy(&dlSem);
+
+                    /* Delete Connection */
+                    ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
+                    if (manager->downloader->downloadConnection != NULL) {
+                        ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
+                        manager->downloader->downloadConnection = NULL;
+                        ARSAL_Sem_Destroy(&dlSem);
+                    }
+                    ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
                     break;
                 }
             }
 
+            /* Delete Connection */
             ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
             if (manager->downloader->downloadConnection != NULL) {
                 ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
                 manager->downloader->downloadConnection = NULL;
-                ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
-                ARSAL_Sem_Destroy(&dlSem);
-                break;
             }
-
             ARSAL_Sem_Destroy(&dlSem);
             ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
