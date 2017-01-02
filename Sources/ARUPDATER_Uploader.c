@@ -278,7 +278,8 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
         {
             error = ARUPDATER_Uploader_ThreadRunAndroidDelos(manager);
         }
-        else if (manager->uploader->ftpManager->networkType == ARDISCOVERY_NETWORK_TYPE_USBMUX)
+        else if (manager->uploader->mux &&
+                 ARDISCOVERY_getProductFamily(manager->uploader->product) == ARDISCOVERY_PRODUCT_FAMILY_SKYCONTROLLER)
         {
            // upload plf over mux
            error = ARUPDATER_Uploader_ThreadRunMux(manager);
