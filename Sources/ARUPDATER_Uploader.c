@@ -273,11 +273,13 @@ void* ARUPDATER_Uploader_ThreadRun(void *managerArg)
     
     if ((manager != NULL) && (manager->uploader != NULL))
     {
-        if ((ARDISCOVERY_getProductService(manager->uploader->product) == ARDISCOVERY_PRODUCT_BLESERVICE) && (manager->uploader->isAndroidApp == 1))
+        if ((manager->uploader->ftpManager->networkType == ARDISCOVERY_NETWORK_TYPE_BLE) &&
+            (manager->uploader->isAndroidApp == 1))
         {
             error = ARUPDATER_Uploader_ThreadRunAndroidDelos(manager);
         }
-        else if (ARDISCOVERY_getProductService(manager->uploader->product) == ARDISCOVERY_PRODUCT_USBSERVICE)
+        else if (manager->uploader->mux &&
+                 ARDISCOVERY_getProductFamily(manager->uploader->product) == ARDISCOVERY_PRODUCT_FAMILY_SKYCONTROLLER)
         {
            // upload plf over mux
            error = ARUPDATER_Uploader_ThreadRunMux(manager);

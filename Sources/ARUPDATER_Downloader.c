@@ -226,7 +226,9 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_SKYCONTROLLER_2]->nbVersionBlacklisted = 2;
 
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[0] = strdup("1.0.0");
-            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->nbVersionBlacklisted = 1;
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[1] = strdup("1.0.2");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->versions[2] = strdup("1.0.3");
+            downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_EVINRUDE]->nbVersionBlacklisted = 3;
 
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_BEBOP_2]->versions[0] = strdup("3.4.0");
             downloader->blacklistedVersions[ARDISCOVERY_PRODUCT_BEBOP_2]->nbVersionBlacklisted = 1;
@@ -606,22 +608,23 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
-            char *result;
-            result = strtok(data, "|");
+            char *result = NULL;
+            char *svg = NULL;
+            result = strtok_r(data, "|", &svg);
 
             // if this plf is not up to date
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
             {
                 nbUpdatesToDownload++;
-                char *downloadUrl = strtok(NULL, "|");
-                char *remoteMD5 = strtok(NULL, "|");
-                char *remoteSizeStr = strtok(NULL, "|");
+                char *downloadUrl = strtok_r(NULL, "|", &svg);
+                char *remoteMD5 = strtok_r(NULL, "|", &svg);
+                char *remoteSizeStr = strtok_r(NULL, "|", &svg);
                 int remoteSize = 0;
                 if (remoteSizeStr != NULL)
                 {
                     remoteSize = atoi(remoteSizeStr);
                 }
-                char *remoteVersion = strtok(NULL, "|");
+                char *remoteVersion = strtok_r(NULL, "\n", &svg);
 
                 manager->downloader->downloadInfos[product] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
             }
@@ -740,13 +743,12 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
 
     manager->downloader->isRunning = 1;
 
-    // if the check has already been done
-    if (manager->downloader->updateHasBeenChecked)
-        goto end;
-
-    nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
-    if (nbDownloadsToDo <= 0)
-        goto end;
+    // if the check has not already been done, do it
+    if (!manager->downloader->updateHasBeenChecked) {
+        nbDownloadsToDo = ARUPDATER_Downloader_CheckUpdatesSync(manager, &error);
+        if (nbDownloadsToDo <= 0)
+            goto end;
+    }
 
     while ((productIndex < manager->downloader->productCount) && (!manager->downloader->isCanceled)) {
         /* for each product, check if update is needed */
@@ -824,20 +826,25 @@ void* ARUPDATER_Downloader_ThreadRun(void *managerArg)
                 utilsError = ARUTILS_Http_Get(manager->downloader->downloadConnection, downloadEndUrl, downloadedFilePath, manager->downloader->plfDownloadProgressCallback, manager->downloader->progressArg);
                 if (utilsError != ARUTILS_OK) {
                     error = ARUPDATER_ERROR_DOWNLOADER_ARUTILS_ERROR;
-                    ARSAL_Sem_Destroy(&dlSem);
+
+                    /* Delete Connection */
+                    ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
+                    if (manager->downloader->downloadConnection != NULL) {
+                        ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
+                        manager->downloader->downloadConnection = NULL;
+                        ARSAL_Sem_Destroy(&dlSem);
+                    }
+                    ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
                     break;
                 }
             }
 
+            /* Delete Connection */
             ARSAL_Mutex_Lock(&manager->downloader->downloadLock);
             if (manager->downloader->downloadConnection != NULL) {
                 ARUTILS_Http_Connection_Delete(&manager->downloader->downloadConnection);
                 manager->downloader->downloadConnection = NULL;
-                ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
-                ARSAL_Sem_Destroy(&dlSem);
-                break;
             }
-
             ARSAL_Sem_Destroy(&dlSem);
             ARSAL_Mutex_Unlock(&manager->downloader->downloadLock);
 
@@ -1069,13 +1076,14 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
-            char *result;
-            result = strtok(data, "|");
+            char *result = NULL;
+            char *svg = NULL;
+            result = strtok_r(data, "|", &svg);
 
             // if the server has no error
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
             {
-                char *jsonAsStr = strtok(NULL, "|");
+                char *jsonAsStr = strtok_r(NULL, "|", &svg);
                 if (jsonAsStr != NULL)
                 {
                     jsonObj = json_tokener_parse(jsonAsStr);
@@ -1307,22 +1315,23 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
         if (error == ARUPDATER_OK)
         {
             data = dataPtr;
-            char *result;
-            result = strtok(data, "|");
+            char *result = NULL;
+            char *svg = NULL;
+            result = strtok_r(data, "|", &svg);
 
             // if this plf is not up to date
             if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_UPDATE) == 0)
             {
                 nbUpdatesToDownload++;
-                char *downloadUrl = strtok(NULL, "|");
-                char *remoteMD5 = strtok(NULL, "|");
-                char *remoteSizeStr = strtok(NULL, "|");
+                char *downloadUrl = strtok_r(NULL, "|", &svg);
+                char *remoteMD5 = strtok_r(NULL, "|", &svg);
+                char *remoteSizeStr = strtok_r(NULL, "|", &svg);
                 int remoteSize = 0;
                 if (remoteSizeStr != NULL)
                 {
                     remoteSize = atoi(remoteSizeStr);
                 }
-                char *remoteVersion = strtok(NULL, "|");
+                char *remoteVersion = strtok_r(NULL, "\n", &svg);
                 manager->downloader->downloadInfos[productIndex] = ARUPDATER_DownloadInformation_New(downloadUrl, remoteMD5, remoteVersion, remoteSize, product, &error);
             }
             else if(strcmp(result, ARUPDATER_DOWNLOADER_PHP_ERROR_OK) == 0)
