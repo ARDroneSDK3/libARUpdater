@@ -46,7 +46,7 @@
 #include "ARUPDATER_Manager.h"
 #include "ARUPDATER_Downloader.h"
 #include "ARUPDATER_Utils.h"
-#include <json/json.h>
+#include <json-c/json.h>
 
 /* ***************************************
  *
