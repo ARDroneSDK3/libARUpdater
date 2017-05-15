@@ -71,7 +71,7 @@ eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionFromString(const char *str, ARUPDATER
 
 	/* lower string */
 	memset(buf, 0, sizeof(buf));
-	for (i = 0; str[i] != '\0'; i++)
+	for (i = 0; (str[i] != '\0') && (i < sizeof(buf) / sizeof(buf[0]) - 1); i++)
 		buf[i] = tolower(str[i]);
 
 	/* try alpha format */
