@@ -276,6 +276,10 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
 
 #if defined(BUILD_LIBPLFNG)
 
+
+static void ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger(void *priv, int prio, const char *fmt, va_list args) ARSAL_ATTRIBUTE_FORMAT_PRINTF(3, 0);
+
+
 static void ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger(void *priv, int prio, const char *fmt, va_list args)
 {
     static const eARSAL_PRINT_LEVEL priotab[] = {
