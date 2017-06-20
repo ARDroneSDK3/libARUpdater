@@ -44,6 +44,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdint.h>
+#include <syslog.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/stat.h>
