@@ -8,7 +8,7 @@
       notice, this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the 
+      the documentation and/or other materials provided with the
       distribution.
     * Neither the name of Parrot nor the names
       of its contributors may be used to endorse or promote products
@@ -22,7 +22,7 @@
     COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
     INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
     BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-    OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED 
+    OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
     AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
     OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
@@ -49,187 +49,143 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include <libpuf.h>
+
 #include <libARSAL/ARSAL_Print.h>
 #include <libARSAL/ARSAL_Endianness.h>
 
 #include "ARUPDATER_Utils.h"
-#include "ARUPDATER_Plf.h"
 #include "ARUPDATER_Manager.h"
 
 #define ARUPDATER_UTILS_TAG                   "ARUPDATER_Utils"
 
+static eARUPDATER_ERROR ARUPDATER_Utils_PufVersionToARUpdaterVersion(const struct puf_version *pv, ARUPDATER_PlfVersion *v)
+{
+	static const eARUPDATER_PLF_TYPE puf_to_arup[] = {
+		[PUF_VERSION_TYPE_DEV] = ARUPDATER_PLF_TYPE_PROD,
+		[PUF_VERSION_TYPE_ALPHA] = ARUPDATER_PLF_TYPE_ALPHA,
+		[PUF_VERSION_TYPE_BETA] = ARUPDATER_PLF_TYPE_BETA,
+		[PUF_VERSION_TYPE_RC] = ARUPDATER_PLF_TYPE_RC,
+		[PUF_VERSION_TYPE_RELEASE] = ARUPDATER_PLF_TYPE_PROD,
+	};
+
+	if (!v || !pv)
+		return ARUPDATER_ERROR_BAD_PARAMETER;
+
+	v->ver = pv->major;
+	v->edit = pv->minor;
+	v->ext = pv->patch;
+	v->patch = pv->build;
+	if (pv->type <= PUF_VERSION_TYPE_RELEASE)
+		v->type = puf_to_arup[pv->type];
+	else
+		v->type = ARUPDATER_PLF_TYPE_ALPHA;
+
+	return ARUPDATER_OK;
+}
+
+static eARUPDATER_ERROR ARUPDATER_Utils_ARUpdaterVersionToPufVersion(const ARUPDATER_PlfVersion *v,struct puf_version *pv)
+{
+	static const eARUPDATER_PLF_TYPE arup_to_puf[] = {
+		[ARUPDATER_PLF_TYPE_ALPHA] = PUF_VERSION_TYPE_ALPHA,
+		[ARUPDATER_PLF_TYPE_BETA] = PUF_VERSION_TYPE_BETA,
+		[ARUPDATER_PLF_TYPE_RC] = PUF_VERSION_TYPE_RC,
+		[ARUPDATER_PLF_TYPE_PROD] = PUF_VERSION_TYPE_RELEASE,
+	};
+
+	if (!v || !pv)
+		return ARUPDATER_ERROR_BAD_PARAMETER;
+
+	pv->major = v->ver;
+	pv->minor = v->edit;
+	pv->patch = v->ext;
+	pv->build = v->patch;
+	if (v->type <= ARUPDATER_PLF_TYPE_PROD)
+		pv->type = arup_to_puf[v->type];
+	else
+		pv->type = PUF_VERSION_TYPE_ALPHA;
+
+	if (v->ver == 0 && v->edit == 0 && v->ext == 0)
+		pv->type = PUF_VERSION_TYPE_DEV;
+
+	return ARUPDATER_OK;
+}
+
 eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionFromString(const char *str, ARUPDATER_PlfVersion *v)
 {
-	char buf[256];
-	size_t i;
+	struct puf_version pv;
 	int ret;
 
-	if (!str || !v) {
+	if (!str || !v)
 		return ARUPDATER_ERROR_BAD_PARAMETER;
-	}
 
-	memset(v, 0, sizeof(*v));
+	ret = puf_version_fromstring(str, &pv);
+	if (ret < 0)
+		return ARUPDATER_ERROR_BAD_PARAMETER;
 
-	/* lower string */
-	memset(buf, 0, sizeof(buf));
-	for (i = 0; (str[i] != '\0') && (i < sizeof(buf) / sizeof(buf[0]) - 1); i++)
-		buf[i] = tolower(str[i]);
-
-	/* try alpha format */
-	ret = sscanf(buf, "%u.%u.%u-alpha%u", &v->ver, &v->edit, &v->ext, &v->patch);
-	if (ret == 4) {
-		v->type = ARUPDATER_PLF_TYPE_ALPHA;
-		return ARUPDATER_OK;
-	}
-
-	/* try beta format */
-	ret = sscanf(buf, "%u.%u.%u-beta%u", &v->ver, &v->edit, &v->ext, &v->patch);
-	if (ret == 4) {
-		v->type = ARUPDATER_PLF_TYPE_BETA;
-		return ARUPDATER_OK;
-	}
-
-	/* try rc format */
-	ret = sscanf(buf, "%u.%u.%u-rc%u", &v->ver, &v->edit, &v->ext, &v->patch);
-	if (ret == 4) {
-		v->type = ARUPDATER_PLF_TYPE_RC;
-		return ARUPDATER_OK;
-	}
-
-	/* try production format */
-	ret = sscanf(buf, "%u.%u.%u", &v->ver, &v->edit, &v->ext);
-	if (ret == 3) {
-		/* check no other suffix */
-		snprintf(buf, sizeof(buf), "%u.%u.%u", v->ver, v->edit, v->ext);
-		if (strncmp(buf, str, sizeof(buf)) == 0) {
-			v->type = ARUPDATER_PLF_TYPE_PROD;
-			v->patch = 0;
-			return ARUPDATER_OK;
-		}
-	}
-
-	/* strange version : fallback to alpha version */
-	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG,
-			"unable to parse version '%s'", str);
-
-	v->type = ARUPDATER_PLF_TYPE_ALPHA;
-	v->patch = 1;
-	return ARUPDATER_OK;
+	return ARUPDATER_Utils_PufVersionToARUpdaterVersion(&pv, v);
 }
 
 eARUPDATER_ERROR ARUPDATER_Utils_PlfVersionToString(const ARUPDATER_PlfVersion *v,
 		char *buf, size_t size)
 {
-	static const char *const strtypes[] = {
-		[ARUPDATER_PLF_TYPE_ALPHA] = "alpha",
-		[ARUPDATER_PLF_TYPE_BETA] = "beta",
-		[ARUPDATER_PLF_TYPE_RC] = "rc",
-		[ARUPDATER_PLF_TYPE_PROD] = "prod",
-	};
+	struct puf_version pv;
+	eARUPDATER_ERROR ret;
 
-	if (!v || !buf || size == 0 || v->type > ARUPDATER_PLF_TYPE_PROD)
+	if (!v || !buf)
 		return ARUPDATER_ERROR_BAD_PARAMETER;
 
-	if (v->type == ARUPDATER_PLF_TYPE_PROD)
-		snprintf(buf, size, "%u.%u.%u",
-			 v->ver, v->edit, v->ext);
-	else
-		snprintf(buf, size, "%u.%u.%u-%s%u",
-			 v->ver, v->edit, v->ext,
-			 strtypes[v->type], v->patch);
+	ret = ARUPDATER_Utils_ARUpdaterVersionToPufVersion(v, &pv);
+	if (ret != ARUPDATER_OK)
+		return ret;
 
+	if (puf_version_tostring(&pv, buf, size) != 0)
+		return ARUPDATER_ERROR;
 	return ARUPDATER_OK;
 }
 
 
 eARUPDATER_ERROR ARUPDATER_Utils_ReadPlfVersion(const char *plfFilePath, ARUPDATER_PlfVersion *v)
 {
-	eARUPDATER_ERROR ret;
-	plf_phdr_t hdr;
-	uint32_t lg;
-	char lang[4];
+	struct puf *puf;
+	struct puf_version pv;
+	eARUPDATER_ERROR ret = ARUPDATER_ERROR;
 
 	if (!plfFilePath || !v)
 		return ARUPDATER_ERROR_BAD_PARAMETER;
 
-	ret = ARUPDATER_Plf_GetHeader(plfFilePath, &hdr);
-	if (ret != ARUPDATER_OK)
-		return ret;
+	puf = puf_new(plfFilePath);
+	if (!puf)
+		return ARUPDATER_ERROR;
 
-	v->ver = hdr.p_ver;
-	v->edit = hdr.p_edit;
-	v->ext = hdr.p_ext;
+	if (puf_get_version(puf, &pv) != 0)
+		goto exit;
 
-	/* lang is set to 0 on production version */
-	if (hdr.p_lang == 0) {
-		v->type = ARUPDATER_PLF_TYPE_PROD;
-		v->patch = 0;
-	} else {
-		/* lang field is little endian */
-		lg = dtohl(hdr.p_lang);
-		memcpy(lang, &lg, 4);
+	ret = ARUPDATER_Utils_PufVersionToARUpdaterVersion(&pv, v);
 
-		switch (lang[0]) {
-		case 'R':
-			v->type = ARUPDATER_PLF_TYPE_RC;
-		break;
-		case 'B':
-			v->type = ARUPDATER_PLF_TYPE_BETA;
-		break;
-		case 'A':
-		default:
-			v->type = ARUPDATER_PLF_TYPE_ALPHA;
-		break;
-		}
-
-		/* check & convert next patch */
-		if (lang[1] >= '0' && lang[1] <= '9' &&
-		    lang[2] >= '0' && lang[2] <= '9') {
-			v->patch = (lang[1] - '0') * 10 + lang[2] - '0';
-		} else {
-			/* unknown version */
-			v->type = ARUPDATER_PLF_TYPE_ALPHA;
-			v->patch = 1;
-		}
-
-	}
-
-	return ARUPDATER_OK;
+exit:
+	puf_destroy(puf);
+	return ret;
 }
 
 int ARUPDATER_Utils_PlfVersionCompare(const ARUPDATER_PlfVersion *v1, const ARUPDATER_PlfVersion *v2)
 {
+	struct puf_version pv1, pv2;
 	if (!v1 || !v2)
 		return 0;
 
-	/* compare version */
-	if (v1->ver != v2->ver)
-		return v1->ver > v2->ver ? 1 : -1;
+	if (ARUPDATER_Utils_ARUpdaterVersionToPufVersion(v1, &pv1) != ARUPDATER_OK)
+		return 0;
+	if (ARUPDATER_Utils_ARUpdaterVersionToPufVersion(v2, &pv2) != ARUPDATER_OK)
+		return 0;
 
-	/* compare edition */
-	if (v1->edit != v2->edit)
-		return v1->edit > v2->edit ? 1 : -1;
-
-	/* compare extension */
-	if (v1->ext != v2->ext)
-		return v1->ext > v2->ext ? 1 : -1;
-
-	/* compare plf type (prod > rc > beta > alpha) */
-	if (v1->type != v2->type)
-		return (int)v1->type > (int)v2->type ? 1 : -1;
-
-	/* compare patch level for not production firmware */
-	if (v1->type != ARUPDATER_PLF_TYPE_PROD && v1->patch != v2->patch)
-		return v1->patch > v2->patch ? 1 : -1;
-
-	/* versions are equals */
-	return 0;
+	return puf_compare_version(&pv1, &pv2);
 }
 
 eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, char **plfFileName)
 {
     eARUPDATER_ERROR error = ARUPDATER_OK;
-    
+
     if ((plfFolder == NULL) || (plfFileName == NULL))
     {
         return ARUPDATER_ERROR_BAD_PARAMETER;
@@ -239,7 +195,7 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
     if (ARUPDATER_OK == error)
     {
         DIR *dir = opendir(plfFolder);
-        
+
         struct dirent *entry = NULL;
         int found = 0;
         if (dir)
@@ -247,145 +203,58 @@ eARUPDATER_ERROR ARUPDATER_Utils_GetPlfInFolder(const char *const plfFolder, cha
             while((found == 0) && (entry = readdir(dir)))
             {
                 char *filename = entry->d_name;
-                char *extension = strrchr(filename, ARUPDATER_MANAGER_PLF_EXTENSION[0]);
-                if ((extension != NULL) && (strcmp(extension, ARUPDATER_MANAGER_PLF_EXTENSION) == 0))
+                char *extension = strrchr(filename, '.');
+                if ((extension != NULL) &&
+                    ((strcmp(extension, ARUPDATER_MANAGER_PLF_EXTENSION) == 0) ||
+                     (strcmp(extension, ARUPDATER_MANAGER_TAR_EXTENSION) == 0) ||
+                     (strcmp(extension, ARUPDATER_MANAGER_GZ_EXTENSION) == 0)))
                 {
-                    int plfFileNameLength = strlen(filename) + 1;
-                    *plfFileName = malloc(plfFileNameLength);
+                    *plfFileName = strdup(filename);
                     if (*plfFileName == NULL)
                     {
                         error = ARUPDATER_ERROR_ALLOC;
-                    }
-                    else
-                    {
-                        strcpy(*plfFileName, filename);
                     }
                     found = 1;
                 }
             }
             closedir(dir);
         }
-        
+
         if (found == 0)
         {
             error = ARUPDATER_ERROR_PLF_FILE_NOT_FOUND;
         }
     }
-    
+
     return error;
 }
 
-#if defined(BUILD_LIBPLFNG)
-
-
-static void ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger(void *priv, int prio, const char *fmt, va_list args) ARSAL_ATTRIBUTE_FORMAT_PRINTF(3, 0);
-
-
-static void ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger(void *priv, int prio, const char *fmt, va_list args)
-{
-    static const eARSAL_PRINT_LEVEL priotab[] = {
-	[LOG_EMERG]   = ARSAL_PRINT_FATAL,
-	[LOG_ALERT]   = ARSAL_PRINT_FATAL,
-	[LOG_CRIT]    = ARSAL_PRINT_FATAL,
-	[LOG_ERR]     = ARSAL_PRINT_ERROR,
-	[LOG_WARNING] = ARSAL_PRINT_WARNING,
-	[LOG_NOTICE]  = ARSAL_PRINT_INFO,
-	[LOG_INFO]    = ARSAL_PRINT_INFO,
-	[LOG_DEBUG]   = ARSAL_PRINT_DEBUG,
-    };
-    char buf[256];
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    ARSAL_PRINT(priotab[prio], ARUPDATER_UTILS_TAG, "libplfng: %s", buf);
-}
-
 eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName, const char *outFolder, const char *unixFileName)
 {
-    FILE *fp;
-    int ret, i, count, pos = -1;
-    plf_unixhdr hdr;
-    char *p, *buf = NULL;
-    const char *filename;
-    struct plfng *plf = NULL;
-    const int bufsize = 4096; /* avoid PATH_MAX headaches */
+	eARUPDATER_ERROR err = ARUPDATER_OK;
+	int ret;
+	struct puf *puf;
+	char *oname = NULL;
 
-    fp = fopen(plfFileName, "rb");
-    if (fp == NULL) {
-	ret = errno;
-	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "fopen(%s): %s", plfFileName, strerror(ret));
-	ret = ARUPDATER_ERROR;
-	goto finish;
-    }
+	if (!plfFileName || !outFolder || !unixFileName)
+		return ARUPDATER_ERROR_BAD_PARAMETER;
 
-    plf = plfng_new_from_file(fp);
-    if (plf == NULL) {
-	ret = ARUPDATER_ERROR_ALLOC;
-	goto finish;
-    }
+	puf = puf_new(plfFileName);
+	if (!puf)
+		return ARUPDATER_ERROR;
 
-    buf = malloc(bufsize);
-    if (buf == NULL) {
-	ret = ARUPDATER_ERROR_ALLOC;
-	goto finish;
-    }
-
-    plfng_set_log_fn(plf, ARUPDATER_Utils_ExtractUnixFileFromPlf_Logger, NULL);
-
-    count = plfng_get_section_count(plf);
-    if (count < 0) {
-	ret = ARUPDATER_ERROR_PLF;
-	goto finish;
-    }
-
-    for (i = 0; i < count; i++) {
-	/* probe section */
-	ret = plfng_get_unixfile_path(plf, i, &hdr, buf, bufsize);
-	if ((ret < 0) || !S_ISREG((mode_t)hdr.s_mode))
-	    /* probably not a U_UNIXFILE regular file */
-	    continue;
-
-	/* get trailing component of path */
-	p = strrchr(buf, '/');
-	filename = p ? p+1 : buf;
-
-	if (strcmp(filename, unixFileName) == 0) {
-	    /* we have a match */
-	    pos = i;
-	    break;
+	asprintf(&oname, "%s/%s", outFolder, unixFileName);
+	if (!oname) {
+		err = ARUPDATER_ERROR_ALLOC;
+		goto exit;
 	}
-    }
 
-    if (pos < 0) {
-	/* file was not found */
-	ARSAL_PRINT(ARSAL_PRINT_ERROR, ARUPDATER_UTILS_TAG, "file '%s' not found in PLF file %s", unixFileName, plfFileName);
-	ret = ARUPDATER_ERROR_PLF;
-	goto finish;
-    }
+	ret = puf_extract_to_file(puf, unixFileName, oname);
+	if (ret < 0)
+		err = ARUPDATER_ERROR;
 
-    /* now do the extraction */
-    snprintf(buf, bufsize, "%s/%s", outFolder, unixFileName);
-    ret = plfng_extract_unixfile(plf, pos, buf);
-    if (ret < 0) {
-	ret = ARUPDATER_ERROR_PLF;
-	goto finish;
-    }
-
-    /* everything went smoothly */
-    ret = ARUPDATER_OK;
-
- finish:
-    if (fp)
-	fclose(fp);
-    plfng_destroy(plf);
-    free(buf);
-
-    return ret;
+exit:
+	free(oname);
+	puf_destroy(puf);
+	return err;
 }
-
-#else
-
-eARUPDATER_ERROR ARUPDATER_Utils_ExtractUnixFileFromPlf(const char *plfFileName, const char *outFolder, const char *unixFileName)
-{
-    return ARUPDATER_ERROR;
-}
-
-#endif /* BUILD_LIBPLFNG */
