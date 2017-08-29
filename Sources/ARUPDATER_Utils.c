@@ -86,7 +86,7 @@ static eARUPDATER_ERROR ARUPDATER_Utils_PufVersionToARUpdaterVersion(const struc
 
 static eARUPDATER_ERROR ARUPDATER_Utils_ARUpdaterVersionToPufVersion(const ARUPDATER_PlfVersion *v,struct puf_version *pv)
 {
-	static const eARUPDATER_PLF_TYPE arup_to_puf[] = {
+	static const enum puf_version_type arup_to_puf[] = {
 		[ARUPDATER_PLF_TYPE_ALPHA] = PUF_VERSION_TYPE_ALPHA,
 		[ARUPDATER_PLF_TYPE_BETA] = PUF_VERSION_TYPE_BETA,
 		[ARUPDATER_PLF_TYPE_RC] = PUF_VERSION_TYPE_RC,
