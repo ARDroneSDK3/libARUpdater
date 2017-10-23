@@ -47,6 +47,8 @@
 #define ARUPDATER_MANAGER_FOLDER_SEPARATOR              "/"
 #define ARUPDATER_MANAGER_PLF_FOLDER                    "plfFolder/"
 #define ARUPDATER_MANAGER_PLF_EXTENSION                 ".plf"
+#define ARUPDATER_MANAGER_TAR_EXTENSION                 ".tar"
+#define ARUPDATER_MANAGER_GZ_EXTENSION                  ".gz"
 
 /**
  * @brief Manager structure

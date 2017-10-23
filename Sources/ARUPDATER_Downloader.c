@@ -1117,11 +1117,15 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
 
                 if (json_object_is_type(jsonObj, json_type_object))
                 {
-                    productJsonObj = json_object_object_get (jsonObj, device);
+                    json_object_object_get_ex (jsonObj, device, &productJsonObj);
                 }
                 if ((productJsonObj != NULL) && !is_error(productJsonObj) && (json_object_is_type(productJsonObj, json_type_array)))
                 {
                     blacklistedRemoteList = json_object_get_array(productJsonObj);
+                }
+                else
+                {
+                    blacklistedRemoteList = NULL;
                 }
 
                 // if it exists blacklisted version for this product

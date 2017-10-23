@@ -14,12 +14,12 @@ LOCAL_LIBRARIES := \
 	libARCommands \
 	libARUtils \
 	libARDataTransfer \
-	json
+	json \
+	libpuf
 
 LOCAL_CONDITIONAL_LIBRARIES := \
 	OPTIONAL:libmux \
-	OPTIONAL:libpomp \
-	OPTIONAL:libplfng
+	OPTIONAL:libpomp
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/Includes \
@@ -32,7 +32,6 @@ LOCAL_SRC_FILES := \
 	Sources/ARUPDATER_Downloader.c \
 	Sources/ARUPDATER_DownloadInformation.c \
 	Sources/ARUPDATER_Manager.c \
-	Sources/ARUPDATER_Plf.c \
 	Sources/ARUPDATER_Uploader.c \
 	Sources/ARUPDATER_Utils.c \
 	gen/Sources/ARUPDATER_Error.c
