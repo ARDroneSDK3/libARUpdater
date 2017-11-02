@@ -67,6 +67,7 @@
 #define ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM            "&platform="
 #define ARUPDATER_DOWNLOADER_APP_PLATFORM_PARAM_BEGIN      "?platform="
 #define ARUPDATER_DOWNLOADER_APP_VERSION_PARAM             "&appVersion="
+#define ARUPDATER_DOWNLOADER_VARIANT_PARAM                 "&variant="
 #define ARUPDATER_DOWNLOADER_VERSION_SEPARATOR             "."
 #define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_PREFIX        "tmp_"
 #define ARUPDATER_DOWNLOADER_DOWNLOADED_FILE_SUFFIX        ".tmp"
@@ -143,6 +144,7 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
         downloader->appPlatform = appPlatform;
         downloader->appVersion = malloc(strlen(appVersion)+1);
         strcpy(downloader->appVersion, appVersion);
+        downloader->variant = NULL;
 
         downloader->md5Manager = md5Manager;
 
@@ -311,6 +313,8 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
 
                 free(manager->downloader->appVersion);
 
+                free(manager->downloader->variant);
+
                 int product = 0;
                 for (product = 0; product < ARDISCOVERY_PRODUCT_MAX; product++)
                 {
@@ -344,6 +348,31 @@ eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager)
                 free(manager->downloader);
                 manager->downloader = NULL;
             }
+        }
+    }
+
+    return error;
+}
+
+eARUPDATER_ERROR ARUPDATER_Downloader_SetVariant(ARUPDATER_Manager_t *manager, const char* const variant)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+
+    if (manager == NULL || variant == NULL || variant[0] == '\0')
+    {
+        error = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+    else if (manager->downloader == NULL)
+    {
+        error = ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+    }
+    else
+    {
+        free(manager->downloader->variant);
+        manager->downloader->variant = strdup(variant);
+        if (manager->downloader->variant == NULL)
+        {
+            error = ARUPDATER_ERROR_ALLOC;
         }
     }
 
@@ -576,6 +605,11 @@ int ARUPDATER_Downloader_CheckUpdatesSync(ARUPDATER_Manager_t *manager, eARUPDAT
 
             strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
             strcat(params, manager->downloader->appVersion);
+
+            if (manager->downloader->variant != NULL) {
+                strcat(params, ARUPDATER_DOWNLOADER_VARIANT_PARAM);
+                strcat(params, manager->downloader->variant);
+            }
 
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
@@ -1047,6 +1081,11 @@ eARUPDATER_ERROR ARUPDATER_Downloader_GetBlacklistedFirmwareVersionsSync(ARUPDAT
             strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
             strcat(params, manager->downloader->appVersion);
 
+            if (manager->downloader->variant != NULL) {
+                strcat(params, ARUPDATER_DOWNLOADER_VARIANT_PARAM);
+                strcat(params, manager->downloader->variant);
+            }
+
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);
             strcat(endUrl, ARUPDATER_DOWNLOADER_PHP_BLACKLIST_FIRM_URL);
@@ -1287,6 +1326,11 @@ int ARUPDATER_Downloader_GetUpdatesInfoSync(ARUPDATER_Manager_t *manager, eARUPD
 
             strcat(params, ARUPDATER_DOWNLOADER_APP_VERSION_PARAM);
             strcat(params, manager->downloader->appVersion);
+
+            if (manager->downloader->variant != NULL) {
+                strcat(params, ARUPDATER_DOWNLOADER_VARIANT_PARAM);
+                strcat(params, manager->downloader->variant);
+            }
 
             char *endUrl = malloc(strlen(ARUPDATER_DOWNLOADER_BEGIN_URL) + strlen(device) + strlen(ARUPDATER_DOWNLOADER_PHP_URL) + strlen(params) + 1);
             strcpy(endUrl, ARUPDATER_DOWNLOADER_BEGIN_URL);

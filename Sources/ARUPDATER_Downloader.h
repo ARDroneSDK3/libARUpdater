@@ -50,6 +50,7 @@ struct ARUPDATER_Downloader_t
 
     eARUPDATER_Downloader_Platforms appPlatform;
     char *appVersion;
+    char *variant;
 
     void *downloadArg;
     void *willDownloadPlfArg;

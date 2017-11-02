@@ -223,6 +223,34 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativ
     return result;
 }
 
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeSetVariant(JNIEnv *env, jobject jThis, jlong jManager, jstring jVariant)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_DOWNLOADER_TAG, "%s", "");
+
+    if (jVariant != NULL)
+    {
+        const char *variant = (*env)->GetStringUTFChars(env, jVariant, 0);
+        if (variant != NULL)
+        {
+            result = ARUPDATER_Downloader_SetVariant(nativeManager, variant);
+            (*env)->ReleaseStringUTFChars(env, jVariant, variant);
+        }
+        else
+        {
+            result = ARUPDATER_ERROR_SYSTEM;
+        }
+    }
+    else
+    {
+        result = ARUPDATER_ERROR_BAD_PARAMETER;
+    }
+
+    return result;
+}
+
 JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterDownloader_nativeSetUpdatesProductList(JNIEnv *env, jobject jThis, jlong jManager, jintArray jProductArray)
 {
     ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;

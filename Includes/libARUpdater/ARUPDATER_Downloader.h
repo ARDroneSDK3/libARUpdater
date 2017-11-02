@@ -135,6 +135,14 @@ eARUPDATER_ERROR ARUPDATER_Downloader_New(ARUPDATER_Manager_t* manager, const ch
 eARUPDATER_ERROR ARUPDATER_Downloader_Delete(ARUPDATER_Manager_t *manager);
 
 /**
+ * @brief Set variant
+ * @param manager : A pointer to the ARUpdater Manager
+ * @param variant : Variant of the app
+ * @return ARUPDATER_OK if operation went well, a description of the error otherwise. Casted into a void*
+ */
+eARUPDATER_ERROR ARUPDATER_Downloader_SetVariant(ARUPDATER_Manager_t *manager, const char* const variant);
+
+/**
  * @brief Set products list to updates process
  * @param managerArg : thread data of type ARUPDATER_Manager_t*
  * @param productList : addresse of hte list of product enums

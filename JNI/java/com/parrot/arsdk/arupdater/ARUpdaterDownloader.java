@@ -54,6 +54,7 @@ public class ARUpdaterDownloader
     private native int nativeDelete(long manager);
     private native void nativeThreadRun (long manager);
     private native int nativeCancelThread (long manager);
+    private native int nativeSetVariant (long manager, String variant);
     private native int nativeSetUpdatesProductList (long manager, int[] productArray);
     private native int nativeCheckUpdatesAsync(long manager);
     private native int nativeCheckUpdatesSync(long manager) throws ARUpdaterException;
@@ -180,6 +181,15 @@ public class ARUpdaterDownloader
         }
 
         return runnable;
+    }
+
+    public ARUPDATER_ERROR_ENUM setVariant(String variant)
+    {
+        int result = nativeSetVariant(nativeManager, variant);
+
+        ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.getFromValue(result);
+
+        return error;
     }
 
     public ARUPDATER_ERROR_ENUM setUpdatesProductList(ARDISCOVERY_PRODUCT_ENUM[] productEnumArray)
