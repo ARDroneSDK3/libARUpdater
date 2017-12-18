@@ -50,6 +50,7 @@ public class ARUpdaterUploader
     	ARUpdaterPlfUploadProgressListener plfUploadProgressListener, Object progressArgs, 
     	ARUpdaterPlfUploadCompletionListener plfUploadCompletionListener, Object completionArgs);
     private native int nativeDelete(long manager);
+    private native int nativeSetSubfolder(long manager, String subfolder);
     private native void nativeThreadRun (long manager);
     private native int nativeCancelThread (long manager);
 
@@ -142,6 +143,22 @@ public class ARUpdaterUploader
             }
         }
         
+        return error;
+    }
+
+    /**
+     * Sets the uploader subfolder
+     * @return ARUPDATER_OK if success, else an {@link ARUPDATER_ERROR_ENUM} error code
+     */
+    public ARUPDATER_ERROR_ENUM setSubfolder(String subfolder)
+    {
+        ARUPDATER_ERROR_ENUM error = ARUPDATER_ERROR_ENUM.ARUPDATER_OK;
+
+        if (!isInit)
+            return ARUPDATER_ERROR_ENUM.ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+
+        int result = nativeSetSubfolder(nativeManager, subfolder);
+        error = ARUPDATER_ERROR_ENUM.getFromValue(result);
         return error;
     }
 

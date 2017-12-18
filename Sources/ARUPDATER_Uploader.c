@@ -141,6 +141,7 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
         
         uploader->product = product;
         uploader->isAndroidApp = isAndroidApp;
+        uploader->subfolder = NULL;
         uploader->ftpManager = ftpManager;
         uploader->mux = mux;
 #if defined BUILD_LIBMUX
@@ -242,6 +243,9 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
                 ARDATATRANSFER_Manager_Delete(&manager->uploader->dataTransferManager);
                 close(manager->uploader->pipefds[0]);
                 close(manager->uploader->pipefds[1]);
+
+                free(manager->uploader->subfolder);
+                manager->uploader->subfolder = NULL;
 #if defined BUILD_LIBMUX
                 if (manager->uploader->mux) {
                     mux_unref(manager->uploader->mux);
@@ -254,6 +258,55 @@ eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager)
         }
     }
     
+    return error;
+}
+
+eARUPDATER_ERROR ARUPDATER_Uploader_SetSubfolder(ARUPDATER_Manager_t *manager, const char *subfolder)
+{
+    eARUPDATER_ERROR error = ARUPDATER_OK;
+    size_t len;
+    int res;
+    const char *filtered_subfolder;
+
+    if (!manager)
+        return ARUPDATER_ERROR_BAD_PARAMETER;
+    if (!manager->uploader)
+        return ARUPDATER_ERROR_MANAGER_NOT_INITIALIZED;
+    if (manager->uploader->isRunning)
+        return ARUPDATER_ERROR_THREAD_PROCESSING;
+
+    /* Handle "subfoler == NULL,empty,or /" case */
+    if (!subfolder ||
+        strlen(subfolder) == 0 ||
+        (strlen(subfolder) == 1 && subfolder[0] == '/')) {
+        free(manager->uploader->subfolder);
+        manager->uploader->subfolder = NULL;
+        return ARUPDATER_OK;
+    }
+
+    /* Subfolder is not null & not empty */
+    len = strlen(subfolder);
+
+    /* If subfolder starts with '/', strip it */
+    if (subfolder[0] == '/')
+        filtered_subfolder = &subfolder[1];
+    else
+        filtered_subfolder = subfolder;
+
+
+    /* If subfolder don't end with '/', add one */
+    if (subfolder[len-1] == '/') {
+        manager->uploader->subfolder = strdup(filtered_subfolder);
+        if (!manager->uploader->subfolder)
+            error = ARUPDATER_ERROR_ALLOC;
+    } else {
+        res = asprintf(&manager->uploader->subfolder, "%s/", filtered_subfolder);
+        if (res < 0) {
+            error = ARUPDATER_ERROR_ALLOC;
+            manager->uploader->subfolder = NULL;
+        }
+    }
+
     return error;
 }
 
@@ -925,30 +978,39 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     
     if (ARUPDATER_OK == error)
     {
-        tmpDestFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + strlen(ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX) + 1);
-        if (tmpDestFilePath == NULL)
-        {
-            error = ARUPDATER_ERROR_ALLOC;
-        }
+        int res;
+        if (manager->uploader->subfolder)
+            res = asprintf(&tmpDestFilePath, "%s%s%s%s",
+                           ARUPDATER_UPLOADER_REMOTE_FOLDER,
+                           manager->uploader->subfolder,
+                           fileName,
+                           ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX);
         else
-        {
-            strcpy(tmpDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-            strcat(tmpDestFilePath, fileName);
-            strcat(tmpDestFilePath, ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX);
+            res = asprintf(&tmpDestFilePath, "%s%s%s",
+                           ARUPDATER_UPLOADER_REMOTE_FOLDER,
+                           fileName,
+                           ARUPDATER_UPLOADER_UPLOADED_FILE_SUFFIX);
+        if (res < 0) {
+            tmpDestFilePath = NULL;
+            error = ARUPDATER_ERROR_ALLOC;
         }
     }
     
     if (ARUPDATER_OK == error)
     {
-        finalDestFilePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(fileName) + 1);
-        if (finalDestFilePath == NULL)
-        {
-            error = ARUPDATER_ERROR_ALLOC;
-        }
+        int res;
+        if (manager->uploader->subfolder)
+            res = asprintf(&finalDestFilePath, "%s%s%s",
+                           ARUPDATER_UPLOADER_REMOTE_FOLDER,
+                           manager->uploader->subfolder,
+                           fileName);
         else
-        {
-            strcpy(finalDestFilePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-            strcat(finalDestFilePath, fileName);
+            res = asprintf(&finalDestFilePath, "%s%s",
+                           ARUPDATER_UPLOADER_REMOTE_FOLDER,
+                           fileName);
+        if (res < 0) {
+            finalDestFilePath = NULL;
+            error = ARUPDATER_ERROR_ALLOC;
         }
     }
     
@@ -996,16 +1058,27 @@ eARUPDATER_ERROR ARUPDATER_Uploader_ThreadRunNormal(ARUPDATER_Manager_t *manager
     
     if (ARUPDATER_OK == error)
     {
-        md5RemotePath = malloc(strlen(ARUPDATER_UPLOADER_REMOTE_FOLDER) + strlen(ARUPDATER_UPLOADER_MD5_FILENAME) + 1);
-        if (md5RemotePath == NULL)
-        {
+        int res;
+        if (manager->uploader->subfolder)
+            res = asprintf(&md5RemotePath, "%s%s%s",
+                           ARUPDATER_UPLOADER_REMOTE_FOLDER,
+                           manager->uploader->subfolder,
+                           ARUPDATER_UPLOADER_MD5_FILENAME);
+        else
+            res = asprintf(&md5RemotePath, "%s%s",
+                           ARUPDATER_UPLOADER_REMOTE_FOLDER,
+                           ARUPDATER_UPLOADER_MD5_FILENAME);
+        if (res < 0) {
+            md5RemotePath = NULL;
             error = ARUPDATER_ERROR_ALLOC;
         }
-        else
-        {
-            strcpy(md5RemotePath, ARUPDATER_UPLOADER_REMOTE_FOLDER);
-            strcat(md5RemotePath, ARUPDATER_UPLOADER_MD5_FILENAME);
-        }
+    }
+
+    if (error == ARUPDATER_OK)
+    {
+        ARSAL_PRINT(ARSAL_PRINT_INFO, ARUPDATER_UPLOADER_TAG,
+                    "Uploading %s into %s",
+                    sourceFilePath, finalDestFilePath);
     }
     
     // get md5 of the plf file to upload

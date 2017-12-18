@@ -89,6 +89,18 @@ eARUPDATER_ERROR ARUPDATER_Uploader_New(ARUPDATER_Manager_t* manager, const char
  */
 eARUPDATER_ERROR ARUPDATER_Uploader_Delete(ARUPDATER_Manager_t *manager);
 
+
+/**
+ * @brief Sets the subfolder of the remote update file.
+ * If not set or set to NULL, the remote update file will be put under the FTP root.
+ * Otherwise, it will be put under "/<subfolder>/update.file".
+ * @warning This function must be called before running the ThreadRun function to have any effect.
+ * @param manager : pointer on the manager
+ * @param[in] subfolder : subfolder to set on the manager
+ * @return ARUPDATER_OK if operation went well, a description of the error otherwise
+ */
+eARUPDATER_ERROR ARUPDATER_Uploader_SetSubfolder(ARUPDATER_Manager_t *manager, const char *subfolder);
+
 /**
  * @brief Upload a plf
  * @warning This function must be called in its own thread.

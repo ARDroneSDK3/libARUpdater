@@ -170,6 +170,24 @@ JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeD
 }
 
 
+JNIEXPORT jint JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeSetSubfolder(JNIEnv *env, jobject jThis, jlong jManager, jstring jSubfolder)
+{
+    ARUPDATER_Manager_t *nativeManager = (ARUPDATER_Manager_t*)(intptr_t)jManager;
+    eARUPDATER_ERROR result = ARUPDATER_OK;
+
+    ARSAL_PRINT(ARSAL_PRINT_DEBUG, ARUPDATER_JNI_UPLOADER_TAG, "%s", "");
+
+    const char *subfolder = (*env)->GetStringUTFChars(env, jSubfolder, 0);
+
+    result = ARUPDATER_Uploader_SetSubfolder(nativeManager, subfolder);
+
+    if (subfolder != NULL)
+        (*env)->ReleaseStringUTFChars(env, jSubfolder, subfolder);
+
+    return result;
+}
+
+
 
 JNIEXPORT void JNICALL Java_com_parrot_arsdk_arupdater_ARUpdaterUploader_nativeThreadRun(JNIEnv *env, jobject jThis, jlong jManager)
 {
